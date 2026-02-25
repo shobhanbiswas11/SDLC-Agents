@@ -11,3 +11,31 @@ dist-ssr
 .vinxi
 __unconfig*
 todos.json
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+backend/venv/
+.env
+backend/.env
+
+# Backend artifacts
+backend/artifacts/
+
+# Build folders
+dist/
+build/
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
