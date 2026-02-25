@@ -1,0 +1,21 @@
+[project]
+name = "codegen-agent-backend"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "python-dotenv",
+    "openai",
+]
+
+[tool.black]
+line-length = 88
+
+[tool.ruff]
+line-length = 88
+
+[tool.isort]
+profile = "black"
