@@ -1,4 +1,5 @@
 import uuid
+from fastapi import HTTPException
 from app.agent.schemas.spec import Spec
 from app.agent.tools.tree import generate_folder_tree
 from app.agent.tools.files import generate_file_content
@@ -10,24 +11,11 @@ from app.agent.clarifier import generate_clarification_questions
 from app.agent.tools.spec_enricher import apply_rule_based_inference, llm_enrich_spec
 from app.agent.tools.spec_validator import detect_missing
 
-
-# def detect_missing(spec: Spec) -> list[str]:
-#     missing = []
-
-#     # Infer language from framework
-#     if spec.framework and not spec.language:
-#         if spec.framework.lower() == "fastapi":
-#             spec.language = "python"
-
-#     if not spec.project_name:
-#         missing.append("project_name")
-#     if not spec.language:
-#         missing.append("language")
-#     if not spec.framework:
-#         missing.append("framework")
-
-#     return missing
 def run_generation(text: str = None, spec: Spec = None):
+
+    if not text and not spec:
+        raise HTTPException(status_code=400, detail="Empty request.")
+
     run_id = str(uuid.uuid4())
 
     if text:

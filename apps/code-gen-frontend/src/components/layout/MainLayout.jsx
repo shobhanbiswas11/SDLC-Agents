@@ -14,8 +14,11 @@ const MainLayout = () => {
   ]);
 
   const [currentSpec, setCurrentSpec] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSend = async (userMessage) => {
+    if (isLoading) return;
+
     const newUserMessage = {
       id: Date.now(),
       role: "user",
@@ -23,6 +26,7 @@ const MainLayout = () => {
     };
 
     setMessages((prev) => [...prev, newUserMessage]);
+    setIsLoading(true);
 
     try {
       const response = await fetch("http://localhost:8000/generate/", {
@@ -37,20 +41,18 @@ const MainLayout = () => {
       });
 
       const data = await response.json();
-      console.log("FULL RESPONSE:", data);
 
       if (data.status === "missing") {
         setCurrentSpec(data.spec);
 
         const formatted =
           "Please clarify the following questions.\n\n" +
-          "Just write the question number and give answers:\n\n" +
           data.questions;
 
         setMessages((prev) => [
           ...prev,
           {
-            id: Date.now(),
+            id: Date.now() + 1,
             role: "assistant",
             content: formatted,
           },
@@ -60,25 +62,26 @@ const MainLayout = () => {
       if (data.status === "complete") {
         setCurrentSpec(null);
 
-        const assistantMessage = {
-          id: Date.now() + 1,
-          role: "assistant",
-          content: `Project generated successfully!\n\nRun ID: ${data.run_id}`,
-        };
-
-        setMessages((prev) => [...prev, assistantMessage]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            role: "assistant",
+            content: `Project generated successfully!\n\nRun ID: ${data.run_id}`,
+          },
+        ]);
       }
     } catch (error) {
-      console.error("Error:", error);
-
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now() + 1,
           role: "assistant",
-          content: "Something went wrong while contacting the server.",
+          content: "⚠️ Something went wrong while contacting the server.",
         },
       ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -91,11 +94,11 @@ const MainLayout = () => {
 
         <div className="flex flex-col flex-1 bg-zinc-950">
           <div className="flex-1 overflow-y-auto px-6 py-6">
-            <ChatWindow messages={messages} />
+            <ChatWindow messages={messages} isLoading={isLoading} />
           </div>
 
           <div className="border-t border-zinc-800 bg-zinc-900 p-4">
-            <ChatInput onSend={handleSend} />
+            <ChatInput onSend={handleSend} isLoading={isLoading} />
           </div>
         </div>
       </div>

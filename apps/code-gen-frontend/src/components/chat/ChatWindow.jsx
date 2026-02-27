@@ -1,7 +1,7 @@
 import React from "react";
 import MessageBubble from "./MessageBubble";
 
-const ChatWindow = ({ messages }) => {
+const ChatWindow = ({ messages, isLoading }) => {
   return (
     <div className="space-y-6">
       {messages.map((message) => (
@@ -11,6 +11,10 @@ const ChatWindow = ({ messages }) => {
           content={message.content}
         />
       ))}
+
+      {isLoading && (
+        <MessageBubble role="assistant" isLoading />
+      )}
     </div>
   );
 };

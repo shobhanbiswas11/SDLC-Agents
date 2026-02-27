@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 
-const ChatInput = ({ onSend }) => {
+const ChatInput = ({ onSend, isLoading }) => {
   const [message, setMessage] = useState("");
 
   const handleSubmit = () => {
-    if (!message.trim()) return;
+    const cleaned = message.trim();
+    if (!cleaned || isLoading) return;
 
-    onSend(message);
+    onSend(cleaned);
     setMessage("");
   };
 
@@ -32,10 +33,23 @@ const ChatInput = ({ onSend }) => {
 
         <button
           onClick={handleSubmit}
-          className="bg-white text-black px-4 py-2 rounded-xl text-sm font-medium hover:bg-zinc-200 transition"
+          disabled={isLoading}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+            isLoading
+              ? "bg-zinc-600 text-zinc-300 cursor-not-allowed"
+              : "bg-white text-black hover:bg-zinc-200"
+          }`}
         >
-          Send
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <span className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin"></span>
+              Generating...
+            </span>
+          ) : (
+            "Send"
+          )}
         </button>
+
       </div>
     </div>
   );

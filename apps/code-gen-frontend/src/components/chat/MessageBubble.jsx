@@ -20,7 +20,10 @@ const MessageBubble = ({ role = "assistant", content, isLoading = false }) => {
         )}
       >
         {isLoading ? (
-          <div className="animate-pulse text-zinc-400">Thinking...</div>
+          <div className="flex items-center gap-2 text-zinc-400">
+            <span className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin"></span>
+            Thinking...
+          </div>
         ) : (
           content
         )}
