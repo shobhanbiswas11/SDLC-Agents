@@ -1,20 +1,12 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 from app.agent.schemas.spec import Spec
 
 
 class GenerateRequest(BaseModel):
-    """
-    Request model for project generation.
-
-    Either:
-    - text: free-form requirement string
-    OR
-    - spec: structured specification JSON
-    """
-
     text: Optional[str] = None
     spec: Optional[Spec] = None
+    answers: Optional[Dict[str, Any]] = None
 
     class Config:
-        extra = "forbid"  # Prevent unknown fields
+        extra = "forbid"  

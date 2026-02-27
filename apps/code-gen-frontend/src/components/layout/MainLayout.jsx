@@ -3,6 +3,7 @@ import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import ChatWindow from "../chat/ChatWindow";
 import ChatInput from "../chat/ChatInput";
+import ClarificationForm from "../chat/ClarificationForm";
 
 const MainLayout = () => {
   const [messages, setMessages] = useState([
@@ -15,6 +16,49 @@ const MainLayout = () => {
 
   const [currentSpec, setCurrentSpec] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [missingFields, setMissingFields] = useState(null);
+
+  const handleClarificationSubmit = async (answers) => {
+    if (isLoading) return;
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:8000/generate/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: null,
+          spec: currentSpec,
+          answers: answers,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.status === "complete") {
+        setMissingFields(null);
+        setCurrentSpec(null);
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            role: "assistant",
+            content: "✅ Project generated successfully.",
+          },
+        ]);
+
+        console.log("Generated Blueprint:", data);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSend = async (userMessage) => {
     if (isLoading) return;
@@ -44,17 +88,15 @@ const MainLayout = () => {
 
       if (data.status === "missing") {
         setCurrentSpec(data.spec);
-
-        const formatted =
-          "Please clarify the following questions.\n\n" +
-          data.questions;
+        setMissingFields(data.missing_fields);
 
         setMessages((prev) => [
           ...prev,
           {
-            id: Date.now() + 1,
+            id: Date.now(),
             role: "assistant",
-            content: formatted,
+            content:
+              "Please provide the following details to continue project generation.",
           },
         ]);
       }
@@ -77,7 +119,7 @@ const MainLayout = () => {
         {
           id: Date.now() + 1,
           role: "assistant",
-          content: "⚠️ Something went wrong while contacting the server.",
+          content: "Something went wrong while contacting the server.",
         },
       ]);
     } finally {
@@ -98,7 +140,15 @@ const MainLayout = () => {
           </div>
 
           <div className="border-t border-zinc-800 bg-zinc-900 p-4">
-            <ChatInput onSend={handleSend} isLoading={isLoading} />
+            {missingFields ? (
+              <ClarificationForm
+                missingFields={missingFields}
+                isLoading={isLoading}
+                onSubmit={(answers) => handleClarificationSubmit(answers)}
+              />
+            ) : (
+              <ChatInput onSend={handleSend} isLoading={isLoading} />
+            )}
           </div>
         </div>
       </div>

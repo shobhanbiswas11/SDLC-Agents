@@ -6,7 +6,16 @@ from app.schemas.response.generate_response import GenerateResponse
 router = APIRouter()
 
 
+# @router.post("/", response_model=GenerateResponse)
+# async def generate(req: GenerateRequest):
+#     result = run_generation(text=req.text, spec=req.spec)
+#     return result
+
 @router.post("/", response_model=GenerateResponse)
 async def generate(req: GenerateRequest):
-    result = run_generation(text=req.text, spec=req.spec)
+    result = run_generation(
+        text=req.text,
+        spec=req.spec,
+        answers=req.answers,
+    )
     return result
