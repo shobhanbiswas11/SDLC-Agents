@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routes import chat, generate
+from app.routes import chat, generate, download
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Code Generator Agent")
@@ -17,6 +17,7 @@ app.add_middleware(
 
 app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 app.include_router(generate.router, prefix="/generate", tags=["Generate"])
+app.include_router(download.router, prefix="/download", tags=["Download"])
 
 
 @app.get("/")

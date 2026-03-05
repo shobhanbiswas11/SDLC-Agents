@@ -6,4 +6,5 @@ openai
 # LangChain and submodules used by LLM and agent logic
 langchain
 langchain-openai
-langchain-google-genai
+# Azure AD authentication
+azure-identity

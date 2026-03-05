@@ -52,6 +52,14 @@ Fill obvious missing fields based on existing spec values.
 Do NOT invent complex features.
 Only infer obvious technical relationships.
 
+IMPORTANT:
+- If "core_features" is empty but the spec has API endpoints,
+  infer the feature names from the endpoint paths and descriptions.
+- If "architecture.style" is missing, infer from the framework
+  (e.g. FastAPI → microservices or modular).
+- If "package_manager" is missing, infer from the language
+  (e.g. python → pip, javascript → npm).
+
 Return ONLY valid JSON.
 {format_instructions}
 """,

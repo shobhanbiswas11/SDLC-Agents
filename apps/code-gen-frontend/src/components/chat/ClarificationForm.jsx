@@ -41,7 +41,7 @@ const ClarificationForm = ({ missingFields, onSubmit, isLoading }) => {
             : "bg-white text-black hover:bg-zinc-200"
         }`}
       >
-        {isLoading ? "Submitting..." : "Submit"}
+        {isLoading ? "Generating..." : "Submit"}
       </button>
     </div>
   );

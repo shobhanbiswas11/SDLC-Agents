@@ -1,16 +1,35 @@
 import os
 from dotenv import load_dotenv
 
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import AzureChatOpenAI, ChatOpenAI
+from azure.identity import ClientSecretCredential, get_bearer_token_provider
 
 load_dotenv()
 
 
 def get_llm():
-    provider = os.getenv("LLM_PROVIDER", "groq")
+    provider = os.getenv("LLM_PROVIDER", "azure")
 
-    if provider == "groq":
+    if provider == "azure":
+        # Azure AD service principal authentication
+        credential = ClientSecretCredential(
+            tenant_id=os.getenv("AZURE_TENANT_ID"),
+            client_id=os.getenv("AZURE_CLIENT_ID"),
+            client_secret=os.getenv("AZURE_CLIENT_SECRET"),
+        )
+        token_provider = get_bearer_token_provider(
+            credential, "https://cognitiveservices.azure.com/.default"
+        )
+
+        return AzureChatOpenAI(
+            azure_deployment=os.getenv("AZURE_OPENAI_CHATGPT_DEPLOYMENT"),
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview"),
+            azure_ad_token_provider=token_provider,
+            temperature=0,
+        )
+
+    elif provider == "groq":
         return ChatOpenAI(
             model="llama-3.1-8b-instant",
             base_url="https://api.groq.com/openai/v1",
@@ -18,21 +37,5 @@ def get_llm():
             temperature=0,
         )
 
-    elif provider == "azure":
-        return ChatOpenAI(
-            model="gpt-4o",
-            api_key=os.getenv("AZURE_OPENAI_KEY"),
-            base_url=os.getenv("AZURE_OPENAI_ENDPOINT"),
-            temperature=0,
-        )
-
-    elif provider == "gemini":
-        return ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            # model = "gemini-1.5-flash",
-            google_api_key=os.getenv("GEMINI_API_KEY"),
-            temperature=0,
-        )
-
     else:
-        raise ValueError("Unsupported LLM provider")
+        raise ValueError(f"Unsupported LLM provider: {provider}")

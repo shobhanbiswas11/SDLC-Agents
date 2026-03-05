@@ -5,57 +5,87 @@ import re
 
 
 def extract_json_from_text(text: str):
-    # 1Try direct parse
+    text = text.strip()
+
     try:
-        return json.loads(text.strip())
-    except Exception:
+        return json.loads(text)
+    except json.JSONDecodeError:
         pass
 
-    # Try extracting first JSON block
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group().strip())
-        except Exception:
-            pass
+    start = text.find("{")
+    end = text.rfind("}")
 
-    #Debug print if needed
-    print("----- LLM RAW RESPONSE -----")
-    print(text)
-    print("----- END RESPONSE -----")
+    if start != -1 and end != -1:
+        json_str = text[start:end+1]
+        return json.loads(json_str)
 
     raise Exception("LLM returned invalid JSON.")
-
 
 def generate_project_blueprint(spec):
     llm = get_llm()
 
     prompt = ChatPromptTemplate.from_messages([
-        (
-            "system",
-            """
-You are a software architect.
+    (
+    "system",
+    """
+    You are a senior software architect and backend engineer.
 
-You MUST:
-- Return ONLY valid JSON.
-- No markdown.
-- No explanations.
-- No extra text.
-- No code blocks.
-- No backticks.
+    Your task is to generate a COMPLETE starter project.
 
-Format:
+    STRICT RULES:
 
-{{
-    "tree": ["file/path.py"],
-    "files": {{
-        "file/path.py": "code content"
-    }},
-    "init_instructions": "..."
-}}
-"""
-        ),
-        ("human", "Spec:\n{spec}")
+    1. Return ONLY valid JSON.
+    2. Do NOT include markdown.
+    3. Do NOT include explanations.
+    4. Do NOT include code blocks.
+    5. Do NOT include backticks.
+    6. The JSON must be directly parsable.
+
+    CRITICAL RULE:
+
+    For EVERY file in "tree",
+    there MUST be a corresponding entry in "files".
+
+    Example:
+
+    tree:
+    [
+        "app/main.py",
+        "app/api/health.py"
+    ]
+
+    files:
+    {{
+        "app/main.py": "...code...",
+        "app/api/health.py": "...code..."
+    }}
+
+    NO file from tree may be missing in files.
+
+    If a file is empty (like __init__.py) return "".
+
+    If it is a python module, return minimal working starter code.
+
+    Output JSON format:
+
+    {{
+        "tree": ["file/path.py"],
+        "files": {{
+            "file/path.py": "full starter code"
+        }},
+        "init_instructions": "step by step instructions to run project"
+    }}
+
+    Starter code must:
+    - be minimal but functional
+    - include imports
+    - include example endpoints where needed
+    - follow the architecture implied by the spec
+
+    Generate the full project now.
+    """
+    ),
+    ("human", "Project specification:\n{spec}")
     ])
 
     chain = prompt | llm

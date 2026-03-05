@@ -4,6 +4,7 @@ import Sidebar from "./Sidebar";
 import ChatWindow from "../chat/ChatWindow";
 import ChatInput from "../chat/ChatInput";
 import ClarificationForm from "../chat/ClarificationForm";
+import ProjectResult from "../chat/ProjectResult";
 
 const MainLayout = () => {
   const [messages, setMessages] = useState([
@@ -17,6 +18,7 @@ const MainLayout = () => {
   const [currentSpec, setCurrentSpec] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [missingFields, setMissingFields] = useState(null);
+  const [generationResult, setGenerationResult] = useState(null);
 
   const handleClarificationSubmit = async (answers) => {
     if (isLoading) return;
@@ -41,13 +43,18 @@ const MainLayout = () => {
       if (data.status === "complete") {
         setMissingFields(null);
         setCurrentSpec(null);
+        setGenerationResult({
+          tree: data.tree,
+          initInstructions: data.init_instructions,
+          runId: data.run_id,
+        });
 
         setMessages((prev) => [
           ...prev,
           {
             id: Date.now(),
             role: "assistant",
-            content: "✅ Project generated successfully.",
+            content: "__PROJECT_RESULT__",
           },
         ]);
 
@@ -55,6 +62,14 @@ const MainLayout = () => {
       }
     } catch (error) {
       console.error(error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          role: "assistant",
+          content: "Something went wrong while generating the project.",
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -62,6 +77,9 @@ const MainLayout = () => {
 
   const handleSend = async (userMessage) => {
     if (isLoading) return;
+
+    // Reset previous result when starting a new generation
+    setGenerationResult(null);
 
     const newUserMessage = {
       id: Date.now(),
@@ -103,13 +121,18 @@ const MainLayout = () => {
 
       if (data.status === "complete") {
         setCurrentSpec(null);
+        setGenerationResult({
+          tree: data.tree,
+          initInstructions: data.init_instructions,
+          runId: data.run_id,
+        });
 
         setMessages((prev) => [
           ...prev,
           {
             id: Date.now() + 1,
             role: "assistant",
-            content: `Project generated successfully!\n\nRun ID: ${data.run_id}`,
+            content: "__PROJECT_RESULT__",
           },
         ]);
       }
@@ -136,7 +159,11 @@ const MainLayout = () => {
 
         <div className="flex flex-col flex-1 bg-zinc-950">
           <div className="flex-1 overflow-y-auto px-6 py-6">
-            <ChatWindow messages={messages} isLoading={isLoading} />
+            <ChatWindow
+              messages={messages}
+              isLoading={isLoading}
+              generationResult={generationResult}
+            />
           </div>
 
           <div className="border-t border-zinc-800 bg-zinc-900 p-4">
