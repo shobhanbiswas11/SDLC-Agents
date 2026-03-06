@@ -1,5 +1,5 @@
 import os
-from langchain.tools import tool
+from langchain_core.tools import tool
 from app.llm.factory import get_llm
 from app.iac_writer import write_iac, read_iac
 
