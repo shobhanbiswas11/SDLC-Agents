@@ -1,0 +1,35 @@
+# Suggest Refactor Tool
+# Generates a refactored version of code for a specific smell
+
+name: suggest_refactor
+description: >
+  Generate a fully refactored version of the file that fixes ALL specified code smells in one
+  pass. Pass ALL smell types as a comma-separated list in smell_type (e.g.
+  "magic_numbers,duplicate_code,long_method,missing_error_handling,deep_nesting").
+  The refactored code is staged automatically — use diff_preview and apply_refactor with
+  new_content="staged" to preview and apply it.
+
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: Path to the file to refactor
+    smell_type:
+      type: string
+      description: >
+        Comma-separated list of ALL code smell types to fix in this one refactor pass.
+        Example: "magic_numbers,duplicate_code,long_method,missing_error_handling,deep_nesting".
+        Always include every smell detected — do not call suggest_refactor more than once per file.
+    instruction:
+      type: string
+      description: >
+        Human-readable instruction summarising all the changes to make.
+        Example: "Fix all: replace magic numbers with constants, merge duplicate functions,
+        add specific error handling, split long method, flatten nested loops."
+    lines:
+      type: string
+      description: "Comma-joined line ranges affected, e.g. '3-7,21,60-76,78-143'"
+  required:
+    - file_path
+    - smell_type

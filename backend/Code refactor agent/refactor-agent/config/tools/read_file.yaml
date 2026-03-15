@@ -1,0 +1,12 @@
+# Read File Tool
+name: read_file
+description: Read a file from the workspace. Returns the file content.
+
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: Path to the file (relative to workspace root or absolute path)
+  required:
+    - file_path

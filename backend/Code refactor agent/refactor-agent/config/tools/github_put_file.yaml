@@ -1,0 +1,23 @@
+name: github_put_file
+description: Push a single file to a GitHub repository via the GitHub Contents API (GET sha then PUT base64 content). Use only after explicit user approval.
+
+parameters:
+  type: object
+  properties:
+    local_file_path:
+      type: string
+      description: Local path to the file inside the current workspace to push.
+    repo_file_path:
+      type: string
+      description: Path in the GitHub repository (defaults to local path relative to workspace).
+    repo_name:
+      type: string
+      description: GitHub repository in owner/repo form. If omitted, tries to detect from git remote origin.
+    branch:
+      type: string
+      description: Branch to update (defaults to current branch or main).
+    commit_message:
+      type: string
+      description: Commit message shown on GitHub.
+  required:
+    - local_file_path

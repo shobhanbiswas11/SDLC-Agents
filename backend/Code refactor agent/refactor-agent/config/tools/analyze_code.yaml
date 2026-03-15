@@ -1,0 +1,20 @@
+# Analyze Code Tool
+# Scans code for code smells and quality issues
+
+name: analyze_code
+description: Analyze a source code file for code smells, anti-patterns, and quality issues. Returns a list of findings with severity (HIGH, MEDIUM, LOW), smell type, affected lines, and description.
+
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: Path to the file to analyze (relative to workspace root or absolute)
+    language:
+      type: string
+      description: Programming language of the file (e.g., python, javascript, typescript). Auto-detected from extension if omitted.
+    focus:
+      type: string
+      description: Optional focus area — analyze only specific smell types. E.g. "naming", "complexity", "duplication".
+  required:
+    - file_path
