@@ -23,7 +23,7 @@ from app.services.agent_service import (
 )
 from app.services.ai_service import generate_fix
 from app.services.diff_service import generate_diff
-from app.services.repo_service import clone_repository
+from app.services.repo_service import clone_repository, list_remote_branches
 from app.services.scan_service import extract_snippet, run_flake8
 
 app = FastAPI(title="AI Coding Standards Enforcer — Multi-Language Agent")
@@ -77,6 +77,7 @@ class CloneRepoRequest(BaseModel):
 
     repo_url: str = ""
     local_path: str = ""
+    branch: str = ""  # optional: specific branch to checkout
 
 
 class ApplyLintersRequest(BaseModel):
@@ -134,6 +135,7 @@ def get_repo_files(request: CloneRepoRequest):
     Clone a GitHub repo (or use a local path) and return all
     supported source files with contents and detected language.
     Designed to feed the Live Editor's file tree.
+    Optionally accepts a `branch` to clone a specific branch.
     """
     try:
         if request.local_path:
@@ -145,7 +147,8 @@ def get_repo_files(request: CloneRepoRequest):
                 )
             repo_path = str(local.resolve())
         elif request.repo_url:
-            repo_path = clone_repository(request.repo_url)
+            branch = request.branch if request.branch else None
+            repo_path = clone_repository(request.repo_url, branch=branch)
         else:
             raise HTTPException(
                 status_code=400,
@@ -189,6 +192,40 @@ def get_repo_files(request: CloneRepoRequest):
             "repo_path": repo_path,
             "total_files": len(files),
             "files": files,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =========================================================
+# 🌿 List Remote Branches
+# =========================================================
+
+
+class RepoBranchesRequest(BaseModel):
+    """Request to list branches of a remote repository."""
+    repo_url: str
+
+
+@app.post("/repo-branches")
+def get_repo_branches(request: RepoBranchesRequest):
+    """
+    List all branches of a remote GitHub repository.
+    Returns branch names and short SHAs, sorted with common
+    default branches (main, master, develop) first.
+    """
+    try:
+        if not request.repo_url.strip():
+            raise HTTPException(status_code=400, detail="Repository URL is required.")
+
+        branches = list_remote_branches(request.repo_url)
+        return {
+            "branches": branches,
+            "total": len(branches),
         }
 
     except HTTPException:
