@@ -6,3 +6,4 @@ azure-identity
 aiohttp
 python-dotenv
 pyyaml
+esprima

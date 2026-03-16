@@ -1,0 +1,881 @@
+{
+  "file_metadata": {
+    "backend/controllers/Pdf/Pdf.js": {
+      "type": "javascript",
+      "functions": [
+        "uploadPdf",
+        "deletedPdf",
+        "getPdf"
+      ],
+      "classes": [],
+      "exports": [
+        "uploadPdf",
+        "deletedPdf",
+        "getPdf"
+      ],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/controllers/Users/user.js": {
+      "type": "javascript",
+      "functions": [
+        "generateOTP",
+        "register",
+        "login"
+      ],
+      "classes": [],
+      "exports": [
+        "register",
+        "login"
+      ],
+      "imports": [
+        "bcrypt"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/Home.jsx": {
+      "type": "javascript",
+      "functions": [
+        "UploadPdf",
+        "fetchPdfList",
+        "handlePdfUpload",
+        "handleDeletePdf",
+        "handleEditTitle",
+        "handleSearchChange"
+      ],
+      "classes": [],
+      "exports": [
+        "UploadPdf"
+      ],
+      "imports": [
+        "axios",
+        "react",
+        "react-speech-recognition"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/index.html": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/README.md": {
+      "type": "markdown",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "React + Vite"
+      ],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/package.json": {
+      "type": "package.json",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [
+        "bcrypt",
+        "body-parser",
+        "cors",
+        "crypto",
+        "express",
+        "mongoose",
+        "multer",
+        "nodemon"
+      ],
+      "scripts": [
+        "test: echo \"Error: no test specified\" && exit 1",
+        "start: nodemon index.js"
+      ]
+    },
+    "frontend/package.json": {
+      "type": "package.json",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [
+        "@react-spring/web",
+        "axios",
+        "js-cookie",
+        "react",
+        "react-dom",
+        "react-icons",
+        "react-quill",
+        "react-router-dom",
+        "react-toastify",
+        "@types/react",
+        "@types/react-dom",
+        "@vitejs/plugin-react",
+        "autoprefixer",
+        "eslint",
+        "eslint-plugin-react",
+        "eslint-plugin-react-hooks",
+        "eslint-plugin-react-refresh",
+        "postcss",
+        "tailwindcss",
+        "vite"
+      ],
+      "scripts": [
+        "dev: vite",
+        "build: vite build",
+        "lint: eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+        "preview: vite preview"
+      ]
+    },
+    "backend/.gitignore": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/utils/sendOTP.js": {
+      "type": "javascript",
+      "functions": [
+        "sendOTPEmail"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "dotenv",
+        "nodemailer"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/App.jsx": {
+      "type": "javascript",
+      "functions": [
+        "App"
+      ],
+      "classes": [],
+      "exports": [
+        "App"
+      ],
+      "imports": [
+        "react",
+        "react-router-dom"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/models/pdf.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "mongoose"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [
+        "userId(mongoose)",
+        "title(String)",
+        "pdfPath(String)",
+        "uploadedAt(Date)"
+      ],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/models/Post.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "mongoose"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [
+        "title(String)",
+        "summary(String)",
+        "content(String)",
+        "cover(String)",
+        "author(Schema.Types.ObjectId)"
+      ],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/postcss.config.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/models/employee.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "mongoose"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [
+        "name(String)",
+        "email(String)",
+        "password(String)",
+        "username(String)",
+        "dob(Date)",
+        "universityname(String)",
+        "profileImage(String)",
+        "refreshToken(String)",
+        "otp(String)",
+        "otpExpiry(Date)"
+      ],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/utils/generateAuthTokenAndSetCookie.js": {
+      "type": "javascript",
+      "functions": [
+        "generateAuthTokenAndSetCookie"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "dotenv",
+        "jsonwebtoken"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/.eslintrc.cjs": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "root",
+        "true",
+        "env",
+        "browser",
+        "es2020"
+      ],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "README.md": {
+      "type": "markdown",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "PDF_POST_AI_CHATBOT - Full-Stack Application with React",
+        "Features",
+        "Tech Stack",
+        "Installation",
+        "Prerequisites",
+        "Frontend Setup",
+        "Backend Setup",
+        "Usage",
+        "Example Usage",
+        "Environment Variables"
+      ],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/.gitignore": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/chatbot/Logout.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Logout",
+        "handleLogout"
+      ],
+      "classes": [],
+      "exports": [
+        "Logout"
+      ],
+      "imports": [
+        "js-cookie",
+        "react",
+        "react-router-dom"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/Context/AuthContext.jsx": {
+      "type": "javascript",
+      "functions": [
+        "useAuthContext",
+        "AuthContextProvider"
+      ],
+      "classes": [],
+      "exports": [
+        "AuthContext",
+        "useAuthContext",
+        "AuthContextProvider"
+      ],
+      "imports": [
+        "js-cookie",
+        "jwt-decode",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/seeposts/SeePosts.jsx": {
+      "type": "javascript",
+      "functions": [
+        "PostsList",
+        "fetchPosts",
+        "toggleExpand"
+      ],
+      "classes": [],
+      "exports": [
+        "PostsList"
+      ],
+      "imports": [
+        "axios",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/posts/Post.jsx": {
+      "type": "javascript",
+      "functions": [
+        "CreatePost",
+        "handleSubmit"
+      ],
+      "classes": [],
+      "exports": [
+        "CreatePost"
+      ],
+      "imports": [
+        "axios",
+        "react",
+        "react-quill"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/index.js": {
+      "type": "javascript",
+      "functions": [
+        "generateOTP",
+        "sendOTPEmail"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "bcrypt",
+        "cors",
+        "dotenv",
+        "express",
+        "mongoose",
+        "multer",
+        "path"
+      ],
+      "endpoints": [
+        {
+          "method": "USE",
+          "path": "/uploads"
+        },
+        {
+          "method": "USE",
+          "path": "/uploads"
+        },
+        {
+          "method": "POST",
+          "path": "/upload-profile-image"
+        },
+        {
+          "method": "GET",
+          "path": "/search"
+        },
+        {
+          "method": "POST",
+          "path": "/register"
+        },
+        {
+          "method": "POST",
+          "path": "/register"
+        },
+        {
+          "method": "POST",
+          "path": "/register"
+        },
+        {
+          "method": "GET",
+          "path": "/pdfs/:pdfId"
+        },
+        {
+          "method": "POST",
+          "path": "/posts"
+        },
+        {
+          "method": "POST",
+          "path": "/posts"
+        },
+        {
+          "method": "GET",
+          "path": "/posts"
+        },
+        {
+          "method": "POST",
+          "path": "/login"
+        },
+        {
+          "method": "POST",
+          "path": "/login"
+        },
+        {
+          "method": "POST",
+          "path": "/verify-otp"
+        },
+        {
+          "method": "POST",
+          "path": "/login"
+        },
+        {
+          "method": "POST",
+          "path": "/login"
+        },
+        {
+          "method": "POST",
+          "path": "/verify-otp"
+        },
+        {
+          "method": "POST",
+          "path": "/upload-pdf"
+        },
+        {
+          "method": "POST",
+          "path": "/upload-pdf"
+        },
+        {
+          "method": "POST",
+          "path": "/upload-pdf"
+        },
+        {
+          "method": "GET",
+          "path": "/user-pdfs/:userId"
+        },
+        {
+          "method": "GET",
+          "path": "/user-pdfs/:userId"
+        },
+        {
+          "method": "DELETE",
+          "path": "/delete-pdf/:id"
+        },
+        {
+          "method": "DELETE",
+          "path": "/delete-pdf/:id"
+        },
+        {
+          "method": "PUT",
+          "path": "/edit-pdf-title/:id"
+        },
+        {
+          "method": "POST",
+          "path": "/tts"
+        },
+        {
+          "method": "POST",
+          "path": "/stt"
+        }
+      ],
+      "middleware": [
+        "express",
+        "cors"
+      ],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/index.css": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/tailwind.config.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/vite.config.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "defineConfig"
+      ],
+      "imports": [
+        "vite",
+        "vitejs"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/chatbot/chatbot.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Chat",
+        "handleSubmit"
+      ],
+      "classes": [],
+      "exports": [
+        "Chat"
+      ],
+      "imports": [
+        "axios",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/pages/searchpage/SearchPage.jsx": {
+      "type": "javascript",
+      "functions": [
+        "SearchPage",
+        "fetchSuggestedUsers",
+        "handleSearch"
+      ],
+      "classes": [],
+      "exports": [
+        "SearchPage"
+      ],
+      "imports": [
+        "axios",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/main.jsx": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "react",
+        "react-dom",
+        "react-router-dom"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/pages/signup/Signup.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Signup",
+        "handleSignup"
+      ],
+      "classes": [],
+      "exports": [
+        "Signup"
+      ],
+      "imports": [
+        "axios",
+        "react",
+        "react-router-dom"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/navbar/Navbar.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Navbar",
+        "handleLogout",
+        "toggleSidebar",
+        "isActive"
+      ],
+      "classes": [],
+      "exports": [
+        "Navbar"
+      ],
+      "imports": [
+        "js-cookie",
+        "react",
+        "react-icons",
+        "react-router-dom"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "readme.md": {
+      "type": "markdown",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "PDF_POST_AI_CHATBOT - Full-Stack Application with React",
+        "Prerequisites",
+        "Getting Started",
+        "Frontend",
+        "Backend"
+      ],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/pages/verify-otp/Verifyotp.jsx": {
+      "type": "javascript",
+      "functions": [
+        "OtpVerification",
+        "handleOtpChange",
+        "handleSubmit"
+      ],
+      "classes": [],
+      "exports": [
+        "OtpVerification"
+      ],
+      "imports": [
+        "axios",
+        "react",
+        "react-router-dom"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/pages/login/Login.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Login",
+        "handleLogin"
+      ],
+      "classes": [],
+      "exports": [
+        "Login"
+      ],
+      "imports": [
+        "axios",
+        "react",
+        "react-router-dom"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/userprofile/UserProfile.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Dashboard",
+        "handleLinkChange",
+        "handleFileChange",
+        "handleEdit",
+        "handleCancel",
+        "handleChange",
+        "handleSubmit",
+        "handleUpload",
+        "handleSectionChange",
+        "handleAddSection",
+        "handleRemoveSection",
+        "handleIconClick"
+      ],
+      "classes": [],
+      "exports": [
+        "Dashboard"
+      ],
+      "imports": [
+        "axios",
+        "react",
+        "react-icons",
+        "react-router-dom",
+        "react-spring",
+        "react-toastify"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    }
+  },
+  "import_graph": {
+    "backend/controllers/Users/user.js": [
+      "backend/models/employee.js",
+      "backend/utils/sendOTP.js"
+    ],
+    "backend/controllers/Pdf/Pdf.js": [
+      "backend/models/pdf.js"
+    ],
+    "frontend/src/App.jsx": [
+      "frontend/Context/AuthContext.jsx",
+      "frontend/src/pages/searchpage/SearchPage.jsx"
+    ],
+    "backend/index.js": [
+      "backend/controllers/Pdf/Pdf.js",
+      "backend/controllers/Users/user.js",
+      "backend/models/Post.js",
+      "backend/models/employee.js",
+      "backend/models/pdf.js",
+      "backend/utils/generateAuthTokenAndSetCookie.js",
+      "backend/utils/sendOTP.js"
+    ],
+    "frontend/src/components/navbar/Navbar.jsx": [
+      "frontend/Context/AuthContext.jsx"
+    ],
+    "frontend/src/main.jsx": [
+      "frontend/Context/AuthContext.jsx",
+      "frontend/src/App.jsx",
+      "frontend/src/index.css"
+    ],
+    "frontend/src/components/userprofile/UserProfile.jsx": [
+      "frontend/Context/AuthContext.jsx"
+    ]
+  },
+  "file_embeddings": {},
+  "last_updated": "2026-03-09T12:08:13.566355"
+}

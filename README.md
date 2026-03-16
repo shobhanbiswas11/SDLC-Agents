@@ -28,8 +28,8 @@ python api.py
 
 ```bash
 cd "apps/Code refactor agent/refactor-agent-ui"
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 ## GitHub Readiness Notes
@@ -44,4 +44,16 @@ This repository intentionally ignores generated/runtime artifacts and secrets vi
 Before pushing, ensure your infra files are complete if you plan to deploy from this repo:
 
 - `infra/Code refactor agent/Dockerfile`
-- `infra/Code refactor agent/Docker-compose.yml`
+- `infra/Code refactor agent/docker-compose.yml`
+
+## Refactor Agent Containers
+
+The refactor agent now has a complete container setup in:
+
+- `infra/Code refactor agent/README.md`
+
+It includes:
+
+- One compose stack (`docker-compose.yml`)
+- Dedicated Dockerfiles for API, worker, and UI
+- `.env.example` template for required Azure settings

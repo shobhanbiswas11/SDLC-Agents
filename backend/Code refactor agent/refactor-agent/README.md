@@ -33,6 +33,22 @@ You can start a refactoring session in two modes:
 
 When GitHub mode is used, the backend clones the repository into `.refactor_repos/<workflow-id>` and runs tools against that cloned workspace.
 
+## Repository Semantic Guard Policy
+
+To make refactoring safe across different repositories, the agent can load an optional policy file from the target workspace:
+
+- `refactor-policy.yaml`
+- `.refactor-policy.yaml`
+- `config/refactor-policy.yaml`
+
+This policy can protect behavior-sensitive code from accidental changes (token keys, env names, routes, imports, protected files).
+
+Example policy template:
+
+- `config/refactor-policy.example.yaml`
+
+If no policy exists, built-in conservative safety rules still apply.
+
 ## Setup
 
 ```bash

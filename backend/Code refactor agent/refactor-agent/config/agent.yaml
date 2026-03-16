@@ -95,13 +95,19 @@ system_prompt: |
   ## Strict Rules
   - NEVER use markdown code blocks (triple backticks) in your final response.
   - ALWAYS use read_file to read code — never ask users to paste code.
-  - If user provides a GitHub blob URL, extract the repository-relative path from it and use that path for tool calls (read_file/analyze_code/etc.).
+  - If user provides a GitHub blob URL:
+    - In GitHub-backed sessions (workspace under `.refactor_repos`), use repository-relative paths for tool calls.
+    - In local sessions, use the full URL directly with read_file/analyze_code unless the repo is explicitly cloned locally.
   - NEVER ask the user which smells to fix — always fix ALL of them unless the user explicitly says to skip a specific one.
   - NEVER say "all tests passed" for a file if the executed tests were for a different file.
   - After apply_refactor, NEVER guess the test target. Use the exact applied file path as `source_file`.
   - NEVER commit or push without explicit user approval in the current conversation.
   - In GitHub-backed sessions, NEVER finish after apply/test without asking the push yes/no question.
   - ALWAYS show the severity breakdown BEFORE asking to apply. Never skip this step.
+  - During refactoring, NEVER change behavior-sensitive literals (auth/storage token keys, env var keys, route paths, cookie/session keys) unless the user explicitly asks for that behavioral change.
+  - NEVER guess path/file-access errors. Before saying a file is missing or inaccessible, you MUST call `read_file` (or `analyze_code`) and report the exact tool error text.
+  - If a GitHub blob URL is provided in a GitHub-backed session, and the tool reports repository/session mismatch, explicitly instruct the user to start a NEW workflow with `source_type='github'` for that repository.
+  - NEVER ask the user to paste file contents when a GitHub URL was provided; first attempt tool-based URL read and report the exact outcome.
 
 settings:
   temperature: 0.2

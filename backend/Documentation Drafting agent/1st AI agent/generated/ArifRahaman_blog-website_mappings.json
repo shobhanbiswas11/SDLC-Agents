@@ -1,0 +1,1408 @@
+{
+  "file_metadata": {
+    "backend/controllers/postControllers.js": {
+      "type": "javascript",
+      "functions": [
+        "createPostController",
+        "getAllPostsController",
+        "getPostBySlugController",
+        "updatePostController",
+        "deletePostController"
+      ],
+      "classes": [],
+      "exports": [
+        "createPostController",
+        "getAllPostsController",
+        "getPostBySlugController",
+        "updatePostController",
+        "deletePostController"
+      ],
+      "imports": [
+        "slugify"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/controllers/uploadController.js": {
+      "type": "javascript",
+      "functions": [
+        "streamUploadToCloudinary"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "cloudinary",
+        "streamifier"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routes/auth.js": {
+      "type": "javascript",
+      "functions": [
+        "applyUserUpdates"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "bcryptjs",
+        "express",
+        "jsonwebtoken"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/signup"
+        },
+        {
+          "method": "POST",
+          "path": "/signup"
+        },
+        {
+          "method": "POST",
+          "path": "/signup"
+        },
+        {
+          "method": "POST",
+          "path": "/login"
+        },
+        {
+          "method": "PUT",
+          "path": "/:id"
+        },
+        {
+          "method": "GET",
+          "path": "/me"
+        },
+        {
+          "method": "PUT",
+          "path": "/me/update"
+        }
+      ],
+      "middleware": [
+        "authMiddleware"
+      ],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/models/Comments.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "CommentSchema",
+        "export",
+        "schema",
+        "too",
+        "Comment",
+        "mongoose",
+        "model"
+      ],
+      "imports": [
+        "mongoose"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [
+        "user(Schema.Types.ObjectId)",
+        "text(String)",
+        "date(Date)"
+      ],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/models/Post.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "CommentSchema",
+        "Post",
+        "mongoose",
+        "model",
+        "PostSchema"
+      ],
+      "imports": [
+        "mongoose"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [
+        "author(Schema.Types.ObjectId)",
+        "title(String)",
+        "slug(String)",
+        "summary(String)",
+        "content(String)",
+        "coverUrl(String)",
+        "likes(Number)",
+        "createdAt(Date)"
+      ],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routes/posts.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "express"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/"
+        },
+        {
+          "method": "GET",
+          "path": "/:slug"
+        },
+        {
+          "method": "POST",
+          "path": "/"
+        },
+        {
+          "method": "PUT",
+          "path": "/:id"
+        },
+        {
+          "method": "DELETE",
+          "path": "/:id"
+        },
+        {
+          "method": "POST",
+          "path": "/:id/comments"
+        }
+      ],
+      "middleware": [
+        "authMiddleware"
+      ],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/models/Notification.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "Notification",
+        "mongoose",
+        "model",
+        "NotificationSchema"
+      ],
+      "imports": [
+        "mongoose"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [
+        "user(Schema.Types.ObjectId)",
+        "from(Schema.Types.ObjectId)",
+        "post(Schema.Types.ObjectId)",
+        "date(Date)",
+        "read(Boolean)"
+      ],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routes/notification.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "express"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/"
+        },
+        {
+          "method": "POST",
+          "path": "/mark-read"
+        },
+        {
+          "method": "POST",
+          "path": "/clear"
+        }
+      ],
+      "middleware": [
+        "authMiddleware"
+      ],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/middleware/uploadAvatar.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "multer",
+        "path"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routes/comments.js": {
+      "type": "javascript",
+      "functions": [
+        "sendNotification"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routes/users.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "express"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/:id"
+        },
+        {
+          "method": "POST",
+          "path": "/:id/follow"
+        }
+      ],
+      "middleware": [
+        "authMiddleware"
+      ],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routes/notifications.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "express"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/"
+        },
+        {
+          "method": "POST",
+          "path": "/mark-read"
+        }
+      ],
+      "middleware": [
+        "authMiddleware"
+      ],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/.gitignore": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/package.json": {
+      "type": "package.json",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [
+        "bcryptjs",
+        "cloudinary",
+        "cors",
+        "dotenv",
+        "express",
+        "express-validator",
+        "jsonwebtoken",
+        "mongoose",
+        "morgan",
+        "multer",
+        "slugify",
+        "streamifier",
+        "nodemon"
+      ],
+      "scripts": [
+        "test: echo \"Error: no test specified\" && exit 1"
+      ]
+    },
+    "backend/models/User.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "User",
+        "mongoose",
+        "model",
+        "UserSchema"
+      ],
+      "imports": [
+        "mongoose"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [
+        "username(String)",
+        "email(String)",
+        "passwordHash(String)",
+        "avatarUrl(String)",
+        "bio(String)"
+      ],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/index.js": {
+      "type": "javascript",
+      "functions": [
+        "normalizeSubject",
+        "chooseSubjectCfg",
+        "groqApiCall",
+        "extractJsonString",
+        "classifyOnTopic"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "body-parser",
+        "cors",
+        "dotenv",
+        "express",
+        "mongoose",
+        "path"
+      ],
+      "endpoints": [
+        {
+          "method": "USE",
+          "path": "/api/uploads"
+        },
+        {
+          "method": "USE",
+          "path": "/api/uploads"
+        },
+        {
+          "method": "USE",
+          "path": "/api/posts"
+        },
+        {
+          "method": "USE",
+          "path": "/api/auth"
+        },
+        {
+          "method": "USE",
+          "path": "/api/comments"
+        },
+        {
+          "method": "USE",
+          "path": "/api/users"
+        },
+        {
+          "method": "GET",
+          "path": "/api/chats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/chats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/chats/:userId"
+        },
+        {
+          "method": "POST",
+          "path": "/api/chats"
+        },
+        {
+          "method": "GET",
+          "path": "/chats"
+        },
+        {
+          "method": "POST",
+          "path": "/chats"
+        },
+        {
+          "method": "POST",
+          "path": "/api/groq"
+        },
+        {
+          "method": "POST",
+          "path": "/api/groq"
+        },
+        {
+          "method": "POST",
+          "path": "/api/speak"
+        }
+      ],
+      "middleware": [
+        "express",
+        "cors",
+        "postRoutes",
+        "authRoutes",
+        "commentRoutes",
+        "usersRoutes",
+        "authMiddleware"
+      ],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/controllers/commentController.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/middleware/auth.js": {
+      "type": "javascript",
+      "functions": [
+        "authMiddleware"
+      ],
+      "classes": [],
+      "exports": [
+        "authMiddleware"
+      ],
+      "imports": [
+        "jsonwebtoken"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/models/ChatSession.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "ChatSessionSchema",
+        "ChatSession",
+        "mongoose",
+        "model",
+        "Chatsession"
+      ],
+      "imports": [
+        "mongoose"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [
+        "sessionId(String)",
+        "startedAt(Date)",
+        "userId(String)",
+        "title(String)",
+        "createdAt(Date)",
+        "updatedAt(Date)"
+      ],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/utils/slugify.js": {
+      "type": "javascript",
+      "functions": [
+        "slugify"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routes/commentRoutes.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "express"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/"
+        },
+        {
+          "method": "GET",
+          "path": "/:postId"
+        }
+      ],
+      "middleware": [
+        "authMiddleware",
+        "getCommentsByPost"
+      ],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routes/multerconfig.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "multer"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/README.md": {
+      "type": "markdown",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "React + Vite",
+        "Expanding the ESLint configuration"
+      ],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/eslint.config.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "defineConfig"
+      ],
+      "imports": [
+        "eslint",
+        "eslint-plugin-react-hooks",
+        "eslint-plugin-react-refresh",
+        "globals"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/index.html": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/models/ChatMessage.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "ChatMessageSchema",
+        "export",
+        "the",
+        "schema",
+        "too",
+        "ChatMessage",
+        "mongoose",
+        "model"
+      ],
+      "imports": [
+        "mongoose"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [
+        "userId(Schema.Types.ObjectId)",
+        "sender(String)",
+        "content(String)",
+        "timestamp(Date)",
+        "topic(String)",
+        "threadId(String)",
+        "meta(Schema.Types.Mixed)"
+      ],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/package.json": {
+      "type": "package.json",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [
+        "@hookform/resolvers",
+        "@tailwindcss/vite",
+        "axios",
+        "clsx",
+        "dompurify",
+        "draft-js",
+        "draftjs-to-html",
+        "framer-motion",
+        "lucide-react",
+        "react",
+        "react-dom",
+        "react-draft-wysiwyg",
+        "react-hook-form",
+        "react-quill",
+        "react-router-dom",
+        "react-toastify",
+        "yup",
+        "@eslint/js",
+        "@types/react",
+        "@types/react-dom",
+        "@vitejs/plugin-react",
+        "autoprefixer",
+        "eslint",
+        "eslint-plugin-react-hooks",
+        "eslint-plugin-react-refresh",
+        "globals",
+        "postcss",
+        "tailwindcss",
+        "vite"
+      ],
+      "scripts": [
+        "dev: vite",
+        "build: vite build",
+        "lint: eslint .",
+        "preview: vite preview"
+      ]
+    },
+    "backend/routes/postRoutes.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "express"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/"
+        },
+        {
+          "method": "GET",
+          "path": "/"
+        },
+        {
+          "method": "GET",
+          "path": "/:slug"
+        },
+        {
+          "method": "GET",
+          "path": "/:slug"
+        },
+        {
+          "method": "PUT",
+          "path": "/:id"
+        },
+        {
+          "method": "DELETE",
+          "path": "/:id"
+        },
+        {
+          "method": "POST",
+          "path": "/:id/like"
+        },
+        {
+          "method": "POST",
+          "path": "/:id/comments"
+        }
+      ],
+      "middleware": [
+        "authMiddleware",
+        "getAllPostsController",
+        "getPostBySlugController"
+      ],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/App.css": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/posts/PostList.jsx": {
+      "type": "javascript",
+      "functions": [
+        "PostsList",
+        "fetchPosts",
+        "timeAgo"
+      ],
+      "classes": [],
+      "exports": [
+        "PostsList"
+      ],
+      "imports": [
+        "framer-motion",
+        "react",
+        "react-router-dom"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/App.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Navbar",
+        "handleLogout",
+        "App"
+      ],
+      "classes": [],
+      "exports": [
+        "App"
+      ],
+      "imports": [
+        "react",
+        "react-router-dom",
+        "react-toastify"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/utils/sendNotification.js": {
+      "type": "javascript",
+      "functions": [
+        "sendNotification"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/ui/Navbar.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Navbar",
+        "handleLogout"
+      ],
+      "classes": [],
+      "exports": [
+        "Navbar"
+      ],
+      "imports": [
+        "react",
+        "react-router-dom",
+        "react-toastify"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/ui/Spinner.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Spinner"
+      ],
+      "classes": [],
+      "exports": [
+        "Spinner"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/posts/grid.css": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/ProtectedRoute.jsx": {
+      "type": "javascript",
+      "functions": [
+        "ProtectedRoute"
+      ],
+      "classes": [],
+      "exports": [
+        "ProtectedRoute"
+      ],
+      "imports": [
+        "react-router-dom"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/pages/Home.jsx": {
+      "type": "javascript",
+      "functions": [
+        "getToken",
+        "HomePage",
+        "loadPosts",
+        "handlePosted",
+        "CreatePost",
+        "submit",
+        "PostCard",
+        "renderContent",
+        "ChatWidget",
+        "send"
+      ],
+      "classes": [],
+      "exports": [
+        "HomePage"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/index.css": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/posts/PostView.jsx": {
+      "type": "javascript",
+      "functions": [
+        "PostView",
+        "storedUser",
+        "getAuthorId",
+        "resolveImageUrl",
+        "fetchPost",
+        "fetchFollowersForAuthor",
+        "handleFollow",
+        "handleLike",
+        "handleAddComment"
+      ],
+      "classes": [],
+      "exports": [
+        "PostView"
+      ],
+      "imports": [
+        "react",
+        "react-router-dom",
+        "react-toastify"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/pages/CreatePost.jsx": {
+      "type": "javascript",
+      "functions": [
+        "CreatePost",
+        "onEditorStateChange",
+        "authHeaders",
+        "uploadImageCallBack",
+        "handleCreatePost",
+        "uploadFile"
+      ],
+      "classes": [],
+      "exports": [
+        "CreatePost"
+      ],
+      "imports": [
+        "dompurify",
+        "draft-js",
+        "draftjs-to-html",
+        "react",
+        "react-draft-wysiwyg",
+        "react-router-dom",
+        "react-toastify"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/main.jsx": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "react",
+        "react-dom"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routes/uploadRoutes.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "express"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/avatar"
+        },
+        {
+          "method": "POST",
+          "path": "/cover"
+        }
+      ],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/comments.jsx/CommentList.jsx": {
+      "type": "javascript",
+      "functions": [
+        "CommentList"
+      ],
+      "classes": [],
+      "exports": [
+        "CommentList"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/AuthContext.jsx": {
+      "type": "javascript",
+      "functions": [
+        "AuthProvider",
+        "login",
+        "logout",
+        "useAuth"
+      ],
+      "classes": [],
+      "exports": [
+        "AuthProvider",
+        "useAuth"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/vite.config.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "defineConfig"
+      ],
+      "imports": [
+        "tailwindcss",
+        "vite",
+        "vitejs"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/pages/grid.css": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/pages/grid copy.css": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/chatai/Chatai.jsx": {
+      "type": "javascript",
+      "functions": [
+        "getStoredToken",
+        "LOCAL_KEY",
+        "renderInlineBold",
+        "renderMessageContent",
+        "ChatAppSingle",
+        "speakText",
+        "handleSend",
+        "onComposerKeyDown"
+      ],
+      "classes": [],
+      "exports": [
+        "ChatAppSingle"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/auth/Login.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Login",
+        "handleSubmit"
+      ],
+      "classes": [],
+      "exports": [
+        "Login"
+      ],
+      "imports": [
+        "axios",
+        "framer-motion",
+        "lucide-react",
+        "react",
+        "react-toastify"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/components/auth/Signup.jsx": {
+      "type": "javascript",
+      "functions": [
+        "strengthLabel",
+        "Signup",
+        "handleStep1",
+        "handleStep2"
+      ],
+      "classes": [],
+      "exports": [
+        "Signup"
+      ],
+      "imports": [
+        "axios",
+        "clsx",
+        "framer-motion",
+        "hookform",
+        "react",
+        "react-hook-form",
+        "react-toastify",
+        "yup"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/src/pages/Profile.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Avatar",
+        "SkeletonCard",
+        "Profile",
+        "fetchUser",
+        "handleAvatarChange",
+        "handleProfileSave",
+        "EditModal",
+        "handleSubmit",
+        "FollowersModal",
+        "ProfileEditForm",
+        "fetchUserAndRelated",
+        "resolveUserObjectsFromResponse",
+        "fetchUsersByIds",
+        "openFollowers",
+        "openFollowing",
+        "UsersModal"
+      ],
+      "classes": [],
+      "exports": [
+        "Profile"
+      ],
+      "imports": [
+        "react",
+        "react-toastify"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    }
+  },
+  "import_graph": {
+    "backend/models/ChatSession.js": [
+      "backend/models/ChatMessage.js"
+    ],
+    "backend/models/User.js": [
+      "backend/models/ChatSession.js"
+    ],
+    "backend/models/Post.js": [
+      "backend/models/Comments.js"
+    ],
+    "backend/controllers/postControllers.js": [
+      "backend/models/Post.js"
+    ],
+    "backend/routes/notification.js": [
+      "backend/middleware/auth.js"
+    ],
+    "backend/routes/comments.js": [
+      "backend/models/Notification.js"
+    ],
+    "backend/controllers/commentController.js": [
+      "backend/models/Comments.js",
+      "backend/models/Post.js"
+    ],
+    "backend/routes/commentRoutes.js": [
+      "backend/controllers/commentController.js",
+      "backend/middleware/auth.js"
+    ],
+    "backend/middleware/auth.js": [
+      "backend/models/User.js"
+    ],
+    "backend/routes/auth.js": [
+      "backend/middleware/auth.js",
+      "backend/middleware/uploadAvatar.js",
+      "backend/models/User.js"
+    ],
+    "backend/index.js": [
+      "backend/middleware/auth.js",
+      "backend/models/ChatMessage.js",
+      "backend/routes/auth.js",
+      "backend/routes/commentRoutes.js",
+      "backend/routes/postRoutes.js",
+      "backend/routes/uploadRoutes.js",
+      "backend/routes/users.js"
+    ],
+    "backend/utils/sendNotification.js": [
+      "backend/models/Notification.js"
+    ],
+    "backend/routes/users.js": [
+      "backend/middleware/auth.js",
+      "backend/models/User.js"
+    ],
+    "backend/routes/uploadRoutes.js": [
+      "backend/controllers/uploadController.js",
+      "backend/routes/multerconfig.js"
+    ],
+    "backend/routes/postRoutes.js": [
+      "backend/controllers/postControllers.js",
+      "backend/middleware/auth.js",
+      "backend/models/Notification.js",
+      "backend/models/Post.js"
+    ],
+    "backend/routes/notifications.js": [
+      "backend/middleware/auth.js",
+      "backend/models/Notification.js"
+    ],
+    "backend/routes/posts.js": [
+      "backend/middleware/auth.js",
+      "backend/models/Notification.js",
+      "backend/models/Post.js",
+      "backend/models/User.js",
+      "backend/utils/slugify.js"
+    ],
+    "frontend/src/App.jsx": [
+      "frontend/src/components/AuthContext.jsx",
+      "frontend/src/components/ProtectedRoute.jsx",
+      "frontend/src/components/auth/Login.jsx",
+      "frontend/src/components/auth/Signup.jsx",
+      "frontend/src/components/chatai/Chatai.jsx",
+      "frontend/src/components/posts/PostList.jsx",
+      "frontend/src/components/posts/PostView.jsx",
+      "frontend/src/components/ui/Navbar.jsx",
+      "frontend/src/pages/CreatePost.jsx",
+      "frontend/src/pages/Home.jsx",
+      "frontend/src/pages/Profile.jsx"
+    ],
+    "frontend/src/components/ProtectedRoute.jsx": [
+      "frontend/src/components/AuthContext.jsx"
+    ],
+    "frontend/src/components/auth/Login.jsx": [
+      "frontend/src/components/AuthContext.jsx"
+    ],
+    "frontend/src/components/posts/PostList.jsx": [
+      "frontend/src/components/posts/grid.css"
+    ],
+    "frontend/src/main.jsx": [
+      "frontend/src/App.jsx"
+    ],
+    "frontend/src/components/ui/Navbar.jsx": [
+      "frontend/src/components/AuthContext.jsx"
+    ]
+  },
+  "diagram": {
+    "node_count": 38,
+    "edge_count": 53,
+    "mermaid": "flowchart TD\n    backend_controllers_commentController_js[\"controllers/commentController.js\"]\n    backend_controllers_postControllers_js[\"controllers/postControllers.js\"]\n    backend_middleware_auth_js[\"middleware/auth.js\"]\n    backend_models_ChatSession_js[\"models/ChatSession.js\"]\n    backend_models_Notification_js[\"models/Notification.js\"]\n    backend_models_Post_js[\"models/Post.js\"]\n    backend_models_User_js[\"models/User.js\"]\n    backend_routes_auth_js[\"routes/auth.js\"]\n    backend_routes_commentRoutes_js[\"routes/commentRoutes.js\"]\n    backend_routes_postRoutes_js[\"routes/postRoutes.js\"]\n    backend_routes_posts_js[\"routes/posts.js\"]\n    backend_routes_uploadRoutes_js[\"routes/uploadRoutes.js\"]\n    backend_routes_users_js[\"routes/users.js\"]\n    frontend_src_App_jsx[\"src/App.jsx\"]\n    frontend_src_components_AuthContext_jsx[\"components/AuthContext.jsx\"]\n\n    backend_models_User_js --> backend_models_ChatSession_js\n    backend_controllers_postControllers_js --> backend_models_Post_js\n    backend_controllers_commentController_js --> backend_models_Post_js\n    backend_routes_commentRoutes_js --> backend_controllers_commentController_js\n    backend_routes_commentRoutes_js --> backend_middleware_auth_js\n    backend_middleware_auth_js --> backend_models_User_js\n    backend_routes_auth_js --> backend_models_User_js\n    backend_routes_auth_js --> backend_middleware_auth_js\n    backend_routes_users_js --> backend_models_User_js\n    backend_routes_users_js --> backend_middleware_auth_js\n    backend_routes_postRoutes_js --> backend_controllers_postControllers_js\n    backend_routes_postRoutes_js --> backend_models_Notification_js\n    backend_routes_postRoutes_js --> backend_middleware_auth_js\n    backend_routes_postRoutes_js --> backend_models_Post_js\n    backend_routes_posts_js --> backend_models_Notification_js\n    backend_routes_posts_js --> backend_middleware_auth_js\n    backend_routes_posts_js --> backend_models_Post_js\n    backend_routes_posts_js --> backend_models_User_js\n    frontend_src_App_jsx --> frontend_src_components_AuthContext_jsx\n\n    classDef backend fill:#1a1a2e,stroke:#7c6cf8,color:#e8eaf6\n    classDef frontend fill:#0d1b2a,stroke:#00e8a2,color:#e8eaf6\n    classDef config fill:#1a0a0a,stroke:#f5a623,color:#e8eaf6\n    class backend_controllers_commentController_js backend\n    class backend_controllers_postControllers_js backend\n    class backend_middleware_auth_js backend\n    class backend_models_ChatSession_js backend\n    class backend_models_Notification_js backend\n    class backend_models_Post_js backend\n    class backend_models_User_js backend\n    class backend_routes_auth_js backend\n    class backend_routes_commentRoutes_js backend\n    class backend_routes_postRoutes_js backend\n    class backend_routes_posts_js backend\n    class backend_routes_uploadRoutes_js backend\n    class backend_routes_users_js backend\n    class frontend_src_App_jsx frontend\n    class frontend_src_components_AuthContext_jsx frontend",
+    "top_nodes": [
+      "frontend/src/App.jsx",
+      "backend/middleware/auth.js",
+      "backend/models/User.js",
+      "backend/models/Post.js",
+      "backend/routes/postRoutes.js",
+      "backend/routes/posts.js",
+      "backend/models/Notification.js",
+      "backend/routes/auth.js",
+      "frontend/src/components/AuthContext.jsx",
+      "backend/controllers/commentController.js",
+      "backend/routes/commentRoutes.js",
+      "backend/routes/users.js",
+      "backend/routes/uploadRoutes.js",
+      "backend/models/ChatSession.js"
+    ]
+  }
+}

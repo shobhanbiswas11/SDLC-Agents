@@ -1,0 +1,1627 @@
+{
+  "file_metadata": {
+    "backend/.gitignore": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/index.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "cors",
+        "dotenv",
+        "express"
+      ],
+      "endpoints": [
+        {
+          "method": "USE",
+          "path": "/doctors/"
+        },
+        {
+          "method": "USE",
+          "path": "/users/"
+        },
+        {
+          "method": "USE",
+          "path": "/users/"
+        },
+        {
+          "method": "USE",
+          "path": "/utility/"
+        }
+      ],
+      "middleware": [
+        "express",
+        "cors",
+        "doctor_signup_router",
+        "user_signup_router",
+        "user_appointment_router",
+        "utility_router"
+      ],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "chatbot-backend/.chroma/index/id_to_uuid_6d8c57e4-fb33-4370-ae5a-02dac7216f2d.pkl": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "chatbot-backend/email/index.html": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routers/doctors/doctors_signup.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "bcrypt",
+        "dotenv",
+        "express",
+        "jsonwebtoken"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/signup"
+        },
+        {
+          "method": "POST",
+          "path": "/verify-otp"
+        },
+        {
+          "method": "POST",
+          "path": "/resend-otp"
+        },
+        {
+          "method": "POST",
+          "path": "/login"
+        },
+        {
+          "method": "GET",
+          "path": "/doctor-details"
+        },
+        {
+          "method": "POST",
+          "path": "/patient-details"
+        },
+        {
+          "method": "POST",
+          "path": "/patients-history"
+        }
+      ],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "README.md": {
+      "type": "markdown",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "Project: JU-Srijan Healthcare Website",
+        "Features",
+        "Tech Stack",
+        "Installation",
+        "Usage Guide",
+        "Environment Variables",
+        "API Reference",
+        "Backend",
+        "Chatbot",
+        "Contributing"
+      ],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "chatbot-backend/.chroma/index/index_metadata_6d8c57e4-fb33-4370-ae5a-02dac7216f2d.pkl": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routers/users/user_middlware.js": {
+      "type": "javascript",
+      "functions": [
+        "checkUserRegistration"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "dotenv",
+        "jsonwebtoken"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routers/users/user_signup.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "bcrypt",
+        "dotenv",
+        "express",
+        "jsonwebtoken"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/hello"
+        },
+        {
+          "method": "POST",
+          "path": "/signup"
+        },
+        {
+          "method": "POST",
+          "path": "/verify-otp"
+        },
+        {
+          "method": "POST",
+          "path": "/resend-otp"
+        },
+        {
+          "method": "POST",
+          "path": "/login"
+        },
+        {
+          "method": "GET",
+          "path": "/user-details"
+        },
+        {
+          "method": "POST",
+          "path": "/subscribed"
+        }
+      ],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/email/email.js": {
+      "type": "javascript",
+      "functions": [
+        "SendEmail"
+      ],
+      "classes": [],
+      "exports": [
+        "SendEmail"
+      ],
+      "imports": [
+        "nodemailer"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "chatbot-backend/.gitignore": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/connection/connection.js": {
+      "type": "javascript",
+      "functions": [
+        "connectToMongo"
+      ],
+      "classes": [],
+      "exports": [
+        "connectToMongo"
+      ],
+      "imports": [
+        "dotenv",
+        "mongoose"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/schemas/schemas.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "mongoose"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [
+        "doctor(String)",
+        "meet_link(String)",
+        "time(String)",
+        "user(String)",
+        "doctor_email(String)",
+        "remark(String)",
+        "fullName(String)",
+        "email(String)",
+        "address(String)",
+        "profession(String)",
+        "password(String)",
+        "otp(String)",
+        "isVerified(Boolean)",
+        "isSubscribed(Boolean)",
+        "education(String)",
+        "experience(Number)",
+        "department(String)"
+      ],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/package.json": {
+      "type": "package.json",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [
+        "bcrypt",
+        "cors",
+        "dotenv",
+        "express",
+        "jsonwebtoken",
+        "mongoose",
+        "nodemailer",
+        "puppeteer"
+      ],
+      "scripts": []
+    },
+    "backend/routers/users/user_interaction.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "dotenv",
+        "express",
+        "jsonwebtoken"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/appointment"
+        },
+        {
+          "method": "GET",
+          "path": "/get-all-doctors"
+        },
+        {
+          "method": "GET",
+          "path": "/get-doctor-details/:_id"
+        }
+      ],
+      "middleware": [
+        "checkUserRegistration"
+      ],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "chatbot-backend/embeddings.py": {
+      "type": "python",
+      "functions": [
+        "chroma_embedding"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "dotenv",
+        "langchain",
+        "os"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "backend/routers/utility/utility.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "bcrypt",
+        "dotenv",
+        "express",
+        "jsonwebtoken"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/get-cardiologists"
+        },
+        {
+          "method": "GET",
+          "path": "/get-neurologists"
+        },
+        {
+          "method": "GET",
+          "path": "/get-psychologists"
+        },
+        {
+          "method": "GET",
+          "path": "/get-ophthalmologists"
+        },
+        {
+          "method": "GET",
+          "path": "/get-dermatologists"
+        },
+        {
+          "method": "POST",
+          "path": "/contact-us"
+        },
+        {
+          "method": "GET",
+          "path": "/department-counts"
+        }
+      ],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "chatbot-backend/.chroma/index/uuid_to_id_6d8c57e4-fb33-4370-ae5a-02dac7216f2d.pkl": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "chatbot-backend/msgsend.py": {
+      "type": "python",
+      "functions": [
+        "format_data",
+        "render_html_template",
+        "send_email"
+      ],
+      "classes": [],
+      "exports": [],
+      "imports": [
+        "datetime",
+        "dotenv",
+        "email",
+        "jinja2",
+        "os",
+        "re",
+        "smtplib"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "chatbot-backend/main.py": {
+      "type": "python",
+      "functions": [
+        "your_endpoint"
+      ],
+      "classes": [
+        "YourDataModel"
+      ],
+      "exports": [],
+      "imports": [
+        "fastapi",
+        "msgsend",
+        "pydantic",
+        "time",
+        "uvicorn"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "decorator": "app.post"
+        }
+      ],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "chatbot-backend/requirements.txt": {
+      "type": "requirements",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [
+        "aiohttp",
+        "aiosignal",
+        "anyio",
+        "async-timeout",
+        "attrs",
+        "backoff",
+        "certifi",
+        "cffi",
+        "charset-normalizer",
+        "chromadb",
+        "click",
+        "clickhouse-connect",
+        "coloredlogs",
+        "cryptography",
+        "data",
+        "dataclasses-json",
+        "decorator",
+        "Deprecated",
+        "dnspython",
+        "duckdb",
+        "exceptiongroup",
+        "fastapi",
+        "filelock",
+        "flatbuffers",
+        "fpdf",
+        "frozenlist",
+        "fsspec",
+        "funcsigs",
+        "greenlet",
+        "h11",
+        "hnswlib",
+        "httptools",
+        "huggingface-hub",
+        "humanfriendly",
+        "idna",
+        "Jinja2",
+        "langchain",
+        "langchainplus-sdk",
+        "loguru",
+        "lz4",
+        "MarkupSafe",
+        "marshmallow",
+        "marshmallow-enum",
+        "monotonic",
+        "mpmath",
+        "multidict",
+        "mypy-extensions",
+        "numexpr",
+        "numpy",
+        "onnxruntime",
+        "openai",
+        "openapi-schema-pydantic",
+        "overrides",
+        "packaging",
+        "pandas",
+        "pinecone-client",
+        "posthog",
+        "protobuf",
+        "pulsar-client",
+        "pycparser",
+        "pycryptodome",
+        "pydantic",
+        "PyGithub",
+        "PyJWT",
+        "PyNaCl",
+        "pypdf",
+        "python-dateutil",
+        "python-dotenv",
+        "pytz",
+        "PyYAML",
+        "regex",
+        "requests",
+        "six",
+        "sniffio",
+        "SQLAlchemy",
+        "starlette",
+        "sympy",
+        "tenacity",
+        "tiktoken",
+        "tokenizers",
+        "tqdm",
+        "typing-inspect",
+        "typing_extensions",
+        "tzdata",
+        "urllib3",
+        "uvicorn",
+        "uvloop",
+        "watchfiles",
+        "websockets",
+        "wrapt",
+        "yarl",
+        "zstandard"
+      ],
+      "scripts": []
+    },
+    "frontend/.gitignore": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/.eslintrc.json": {
+      "type": "json_config",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "extends"
+      ],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/Header.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Header",
+        "getStat"
+      ],
+      "classes": [],
+      "exports": [
+        "Header"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/Footer.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Footer"
+      ],
+      "classes": [],
+      "exports": [
+        "Footer"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/Loader.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Loader"
+      ],
+      "classes": [],
+      "exports": [
+        "Loader"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/Contact.jsx": {
+      "type": "javascript",
+      "functions": [
+        "ContactUsPage",
+        "handleChange",
+        "SendConcern",
+        "handleShowToast"
+      ],
+      "classes": [],
+      "exports": [
+        "ContactUsPage"
+      ],
+      "imports": [
+        "axios",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/Remarks.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Remarks",
+        "sendRemarks",
+        "handleChange"
+      ],
+      "classes": [],
+      "exports": [
+        "Remarks"
+      ],
+      "imports": [
+        "axios",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/Faqs.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Faqs",
+        "toggleFaq"
+      ],
+      "classes": [],
+      "exports": [
+        "Faqs"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/UserHistory.jsx": {
+      "type": "javascript",
+      "functions": [
+        "UserHistory",
+        "formatTime",
+        "getUserHistory"
+      ],
+      "classes": [],
+      "exports": [
+        "UserHistory"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/README.md": {
+      "type": "markdown",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "Getting Started",
+        "or",
+        "or",
+        "or",
+        "Learn More",
+        "Deploy on Vercel"
+      ],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/Services.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Services"
+      ],
+      "classes": [],
+      "exports": [
+        "Services"
+      ],
+      "imports": [
+        "next",
+        "react",
+        "react-typed"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/Success.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Success"
+      ],
+      "classes": [],
+      "exports": [
+        "Success"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/DoctorProfile.jsx": {
+      "type": "javascript",
+      "functions": [
+        "DoctorProfile",
+        "formatTime",
+        "getUserProfile"
+      ],
+      "classes": [],
+      "exports": [
+        "DoctorProfile"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/Navbar.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Navbar",
+        "deleteLocalStorage"
+      ],
+      "classes": [],
+      "exports": [
+        "Navbar"
+      ],
+      "imports": [
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/hooks/useSocket.js": {
+      "type": "javascript",
+      "functions": [
+        "useSocket",
+        "socketInitializer"
+      ],
+      "classes": [],
+      "exports": [
+        "useSocket"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/package.json": {
+      "type": "package.json",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [
+        "@material-ui/core",
+        "@material-ui/icons",
+        "@stripe/react-stripe-js",
+        "@stripe/stripe-js",
+        "axios",
+        "dotenv",
+        "next",
+        "react",
+        "react-calendar",
+        "react-copy-to-clipboard",
+        "react-datepicker",
+        "react-dom",
+        "react-speech-recognition",
+        "react-typed",
+        "simple-peer",
+        "socket.io",
+        "socket.io-client",
+        "stripe",
+        "styled-components",
+        "uuid",
+        "@types/node",
+        "@types/react",
+        "@types/react-dom",
+        "autoprefixer",
+        "eslint",
+        "eslint-config-next",
+        "postcss",
+        "tailwindcss",
+        "typescript"
+      ],
+      "scripts": [
+        "dev: next dev",
+        "build: next build",
+        "start: next start",
+        "lint: next lint"
+      ]
+    },
+    "frontend/pages/_app.tsx": {
+      "type": "javascript",
+      "functions": [
+        "App"
+      ],
+      "classes": [],
+      "exports": [
+        "App"
+      ],
+      "imports": [
+        "next"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/next.config.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/_document.tsx": {
+      "type": "javascript",
+      "functions": [
+        "Document"
+      ],
+      "classes": [],
+      "exports": [
+        "Document"
+      ],
+      "imports": [
+        "next"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/about/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "index",
+        "Index"
+      ],
+      "classes": [],
+      "exports": [
+        "index"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/api/checkout_sessions.js": {
+      "type": "javascript",
+      "functions": [
+        "handler"
+      ],
+      "classes": [],
+      "exports": [
+        "async"
+      ],
+      "imports": [
+        "stripe"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/api/hello.ts": {
+      "type": "javascript",
+      "functions": [
+        "handler"
+      ],
+      "classes": [],
+      "exports": [
+        "handler"
+      ],
+      "imports": [
+        "next"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/api/socket.js": {
+      "type": "javascript",
+      "functions": [
+        "SocketHandler"
+      ],
+      "classes": [],
+      "exports": [
+        "SocketHandler"
+      ],
+      "imports": [
+        "socket.io"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/doctor-login/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Login",
+        "handleSubmit"
+      ],
+      "classes": [],
+      "exports": [
+        "Login"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/doctor-signup/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Signup",
+        "handleChange",
+        "handleSubmit"
+      ],
+      "classes": [],
+      "exports": [
+        "Signup"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/doctor-otp/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "VerifyOTP",
+        "handleSubmit",
+        "handleResendOTP"
+      ],
+      "classes": [],
+      "exports": [
+        "VerifyOTP"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react",
+        "react-consoleify"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/doctors/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Doctors",
+        "getDepartmentCounts"
+      ],
+      "classes": [],
+      "exports": [
+        "Doctors"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react",
+        "react-typed"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/meet/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Meet",
+        "joinRoom"
+      ],
+      "classes": [],
+      "exports": [
+        "Meet"
+      ],
+      "imports": [
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Home",
+        "fetchDoctors"
+      ],
+      "classes": [],
+      "exports": [
+        "Home"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react",
+        "react-typed"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/profile/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "index"
+      ],
+      "classes": [],
+      "exports": [
+        "index"
+      ],
+      "imports": [
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/components/UserProfile.jsx": {
+      "type": "javascript",
+      "functions": [
+        "UserProfile",
+        "handleSubmit",
+        "formatTime",
+        "getUserProfile"
+      ],
+      "classes": [],
+      "exports": [
+        "UserProfile"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react",
+        "stripe"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/room/[id].js": {
+      "type": "javascript",
+      "functions": [
+        "Room",
+        "handleRoomJoined",
+        "handleRoomCreated",
+        "initiateCall",
+        "onPeerLeave",
+        "createPeerConnection",
+        "handleReceivedOffer",
+        "handleAnswer",
+        "handleICECandidateEvent",
+        "handlerNewIceCandidateMsg",
+        "handleTrackEvent",
+        "toggleMediaStream",
+        "toggleMic",
+        "toggleCamera",
+        "leaveRoom"
+      ],
+      "classes": [],
+      "exports": [
+        "Room"
+      ],
+      "imports": [
+        "next",
+        "react",
+        "socket.io-client"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/user-login/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Login",
+        "handleSubmit"
+      ],
+      "classes": [],
+      "exports": [
+        "Login"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/signin/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "page"
+      ],
+      "classes": [],
+      "exports": [
+        "page"
+      ],
+      "imports": [
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/user-signup/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "Signup",
+        "handleChange",
+        "handleSubmit"
+      ],
+      "classes": [],
+      "exports": [
+        "Signup"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/styles/globals.css": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/postcss.config.js": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "plugins",
+        "tailwindcss"
+      ],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/user-otp/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "VerifyOTP",
+        "handleSubmit",
+        "handleResendOTP"
+      ],
+      "classes": [],
+      "exports": [
+        "VerifyOTP"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react",
+        "react-consoleify"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/tailwind.config.ts": {
+      "type": "javascript",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "config"
+      ],
+      "imports": [
+        "tailwindcss"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/tsconfig.json": {
+      "type": "json_config",
+      "functions": [],
+      "classes": [],
+      "exports": [
+        "compilerOptions",
+        "include",
+        "exclude"
+      ],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/login/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "index"
+      ],
+      "classes": [],
+      "exports": [
+        "index"
+      ],
+      "imports": [
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "chatbot-backend/.chroma/index/index_6d8c57e4-fb33-4370-ae5a-02dac7216f2d.bin": {
+      "type": "other",
+      "functions": [],
+      "classes": [],
+      "exports": [],
+      "imports": [],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/doctor/[slug].js": {
+      "type": "javascript",
+      "functions": [
+        "Page",
+        "makeAppointment",
+        "getDoctorDetails",
+        "handleShowToast",
+        "getServerSideProps"
+      ],
+      "classes": [],
+      "exports": [
+        "getServerSideProps",
+        "Page"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react",
+        "react-calendar",
+        "uuid"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/chatbot/index.jsx": {
+      "type": "javascript",
+      "functions": [
+        "index",
+        "handlespeechSubmit",
+        "handleInputChange",
+        "generateUniqueId",
+        "formatText"
+      ],
+      "classes": [],
+      "exports": [
+        "index"
+      ],
+      "imports": [
+        "axios",
+        "react",
+        "react-typed",
+        "uuid"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    },
+    "frontend/pages/specialists/[slug].jsx": {
+      "type": "javascript",
+      "functions": [
+        "Page",
+        "getSpecialistDoctors"
+      ],
+      "classes": [],
+      "exports": [
+        "Page"
+      ],
+      "imports": [
+        "axios",
+        "next",
+        "react"
+      ],
+      "endpoints": [],
+      "middleware": [],
+      "schema_fields": [],
+      "env_vars": [],
+      "dependencies": [],
+      "scripts": []
+    }
+  },
+  "import_graph": {
+    "chatbot-backend/main.py": [
+      "chatbot-backend/msgsend.py"
+    ],
+    "backend/routers/utility/utility.js": [
+      "backend/email/email.js",
+      "backend/schemas/schemas.js"
+    ],
+    "backend/routers/users/user_interaction.js": [
+      "backend/routers/users/user_middlware.js",
+      "backend/schemas/schemas.js"
+    ],
+    "backend/routers/doctors/doctors_signup.js": [
+      "backend/email/email.js",
+      "backend/schemas/schemas.js"
+    ],
+    "backend/index.js": [
+      "backend/connection/connection.js",
+      "backend/routers/doctors/doctors_signup.js",
+      "backend/routers/users/user_interaction.js",
+      "backend/routers/users/user_signup.js",
+      "backend/routers/utility/utility.js"
+    ],
+    "backend/routers/users/user_signup.js": [
+      "backend/email/email.js",
+      "backend/schemas/schemas.js"
+    ],
+    "frontend/components/Contact.jsx": [
+      "frontend/components/Loader.jsx",
+      "frontend/components/Success.jsx"
+    ],
+    "backend/routers/users/user_middlware.js": [
+      "backend/schemas/schemas.js"
+    ],
+    "frontend/pages/_app.tsx": [
+      "frontend/components/Navbar.jsx"
+    ],
+    "frontend/pages/doctor/[slug].js": [
+      "frontend/components/Success.jsx"
+    ],
+    "frontend/pages/index.jsx": [
+      "frontend/components/Contact.jsx",
+      "frontend/components/Faqs.jsx",
+      "frontend/components/Header.jsx",
+      "frontend/components/Services.jsx"
+    ],
+    "frontend/pages/profile/index.jsx": [
+      "frontend/components/DoctorProfile.jsx",
+      "frontend/components/UserProfile.jsx"
+    ],
+    "frontend/pages/user-login/index.jsx": [
+      "frontend/components/Success.jsx"
+    ],
+    "frontend/pages/room/[id].js": [
+      "frontend/components/Remarks.jsx",
+      "frontend/components/UserHistory.jsx",
+      "frontend/hooks/useSocket.js"
+    ]
+  },
+  "file_embeddings": {},
+  "last_updated": "2026-03-08T11:20:20.014142"
+}

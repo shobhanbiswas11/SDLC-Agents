@@ -16,7 +16,14 @@ import re
 import urllib.request
 import urllib.parse
 import urllib.error
+import hashlib
 from pathlib import Path
+
+from semantic_safety import (
+    is_path_protected_by_policy,
+    load_refactor_policy,
+    validate_semantic_safety,
+)
 
 
 # ──────────────────────────────────────────────
@@ -30,15 +37,49 @@ _tools_cached_client_time = 0.0
 _TOOLS_CLIENT_TTL = 1800  # 30 min
 
 
+def _extract_first_http_url(value: str) -> str:
+    text = (value or "").strip()
+    if not text:
+        return ""
+    match = re.search(r"https?://\S+", text)
+    if not match:
+        return ""
+    return match.group(0).strip("'\"),.;>]")
+
+
 def _is_http_url(value: str) -> bool:
-    parsed = urllib.parse.urlparse((value or "").strip())
+    parsed = urllib.parse.urlparse(_normalize_url_candidate(value))
     return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _normalize_url_candidate(value: str) -> str:
+    """
+    Normalize pasted URL-like inputs that may include trailing punctuation
+    or extra text (timestamps, labels).
+    """
+    text = (value or "").strip()
+    if not text:
+        return ""
+    embedded = _extract_first_http_url(text)
+    if embedded:
+        return embedded
+
+    github_match = re.search(r"(?:^|\s)((?:www\.)?github\.com/\S+)", text)
+    if github_match:
+        candidate = github_match.group(1).strip("'\"),.;>]")
+        return "https://" + candidate
+
+    first_token = text.split()[0]
+    if first_token.startswith("github.com/") or first_token.startswith("www.github.com/"):
+        first_token = f"https://{first_token}"
+    return first_token.strip("'\"),.;>]")
 
 
 def _github_blob_to_raw(url: str) -> str:
     """Convert a GitHub blob URL to raw content URL; return input if unchanged."""
-    parsed = urllib.parse.urlparse(url)
-    if parsed.netloc != "github.com":
+    normalized = _normalize_url_candidate(url)
+    parsed = urllib.parse.urlparse(normalized)
+    if parsed.netloc not in {"github.com", "www.github.com"}:
         return url
 
     parts = [p for p in parsed.path.split("/") if p]
@@ -49,6 +90,196 @@ def _github_blob_to_raw(url: str) -> str:
         return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{file_path}"
 
     return url
+
+
+def _github_blob_repo_and_path(url: str) -> tuple[str, str] | None:
+    """Return (repo_url, repo_relative_path) for GitHub blob URL, else None."""
+    normalized = _normalize_url_candidate(url)
+    parsed = urllib.parse.urlparse(normalized)
+    if parsed.netloc not in {"github.com", "www.github.com"}:
+        return None
+
+    parts = [p for p in parsed.path.split("/") if p]
+    # /<owner>/<repo>/blob/<branch>/<path...>
+    if len(parts) >= 5 and parts[2] == "blob":
+        owner, repo, _, _branch = parts[:4]
+        file_path = "/".join(parts[4:])
+        return (f"https://github.com/{owner}/{repo}", file_path)
+    return None
+
+
+def _github_blob_parts(url: str) -> tuple[str, str, str] | None:
+    """Return (repo_url, branch, repo_relative_path) for GitHub blob URL."""
+    normalized = _normalize_url_candidate(url)
+    parsed = urllib.parse.urlparse(normalized)
+    if parsed.netloc not in {"github.com", "www.github.com"}:
+        return None
+
+    parts = [p for p in parsed.path.split("/") if p]
+    if len(parts) < 5 or parts[2] != "blob":
+        return None
+
+    owner, repo, _, branch = parts[:4]
+    repo_rel_path = "/".join(parts[4:])
+    if not repo_rel_path:
+        return None
+    return (f"https://github.com/{owner}/{repo}", branch, repo_rel_path)
+
+
+def _normalize_github_repo_url(repo_url: str) -> str:
+    raw = (repo_url or "").strip()
+    if not raw:
+        return ""
+
+    if raw.startswith("git@github.com:"):
+        raw = "https://github.com/" + raw.split("git@github.com:", 1)[1]
+
+    parsed = urllib.parse.urlparse(raw if "://" in raw else f"https://{raw}")
+    if parsed.netloc not in {"github.com", "www.github.com"}:
+        return ""
+
+    parts = [p for p in parsed.path.split("/") if p]
+    if len(parts) < 2:
+        return ""
+
+    owner = parts[0]
+    repo = parts[1]
+    if repo.endswith(".git"):
+        repo = repo[:-4]
+    return f"https://github.com/{owner}/{repo}"
+
+
+def _workspace_github_repo_url(workspace_path: str) -> str:
+    """Best-effort read of the current workspace git origin as normalized GitHub repo URL."""
+    workspace = Path(workspace_path)
+    if not workspace.exists():
+        return ""
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(workspace), "config", "--get", "remote.origin.url"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode != 0:
+            return ""
+        return _normalize_github_repo_url(result.stdout.strip())
+    except Exception:
+        return ""
+
+
+def _github_session_repo_mismatch_error(file_path: str, workspace_path: str) -> str | None:
+    """
+    In GitHub-backed sessions, detect when a blob URL points to a different repo than the cloned workspace.
+    Returns a user-facing error string when mismatch is detected.
+    """
+    if ".refactor_repos" not in (workspace_path or ""):
+        return None
+
+    blob_info = _github_blob_repo_and_path(file_path)
+    if not blob_info:
+        return None
+
+    requested_repo, requested_rel_path = blob_info
+    current_repo = _workspace_github_repo_url(workspace_path)
+    if not current_repo:
+        return None
+
+    # Defensive fallback: if the requested repo-relative file already exists in this
+    # GitHub-backed workspace, treat it as same-session and do not raise mismatch.
+    try:
+        candidate = Path(workspace_path) / requested_rel_path
+        if candidate.exists() and candidate.is_file():
+            return None
+    except Exception:
+        pass
+
+    if _normalize_github_repo_url(requested_repo) == _normalize_github_repo_url(current_repo):
+        return None
+
+    return (
+        "GitHub session repository mismatch detected. "
+        f"Current session repo: {current_repo}. "
+        f"Requested file repo: {requested_repo} (path: {requested_rel_path}). "
+        "Start a NEW workflow with source_type='github' and github_url set to the requested repo, "
+        "then use repository-relative file paths in that new session."
+    )
+
+
+def _is_safe_repo_relative_path(repo_path: str) -> bool:
+    text = (repo_path or "").strip().replace("\\", "/")
+    if not text or text.startswith("/"):
+        return False
+    parts = [part for part in text.split("/") if part not in {"", "."}]
+    return all(part != ".." for part in parts)
+
+
+def _clone_repo_if_needed(repo_url: str, branch: str, clone_path: Path) -> tuple[bool, str | None]:
+    """Ensure a repo exists at clone_path. Returns (ok, error)."""
+    try:
+        if (clone_path / ".git").exists():
+            origin = _workspace_github_repo_url(str(clone_path))
+            if _normalize_github_repo_url(origin) == _normalize_github_repo_url(repo_url):
+                return True, None
+            shutil.rmtree(clone_path, ignore_errors=True)
+
+        clone_path.parent.mkdir(parents=True, exist_ok=True)
+        cmd = ["git", "clone", "--depth", "1", "--branch", branch, repo_url, str(clone_path)]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, check=False)
+        if result.returncode != 0:
+            err = (result.stderr or result.stdout or "Unknown git clone error").strip()
+            return False, f"Failed to auto-clone repository: {err}"
+        return True, None
+    except subprocess.TimeoutExpired:
+        return False, "Failed to auto-clone repository: git clone timed out after 120 seconds."
+    except Exception as e:
+        return False, f"Failed to auto-clone repository: {str(e)}"
+
+
+def _resolve_blob_url_to_local_file(file_path: str, workspace_path: str) -> tuple[Path | None, str | None, str | None]:
+    """
+    Resolve GitHub blob URL to a local file path.
+    Returns (resolved_path, error, note).
+    - In GitHub-backed session: maps same-repo blob URL to workspace-relative file.
+    - In local session: auto-clones repo to ad-hoc cache and resolves file path.
+    """
+    parts = _github_blob_parts(file_path)
+    if not parts:
+        return None, "Only GitHub blob URLs are supported for this operation.", None
+
+    repo_url, branch, repo_rel_path = parts
+    if not _is_safe_repo_relative_path(repo_rel_path):
+        return None, "Unsafe repository file path detected in URL.", None
+
+    is_github_backed = ".refactor_repos" in (workspace_path or "")
+    if is_github_backed:
+        mismatch_error = _github_session_repo_mismatch_error(file_path, workspace_path)
+        if mismatch_error:
+            return None, mismatch_error, None
+
+        resolved = Path(workspace_path) / repo_rel_path
+        if not resolved.exists():
+            return None, f"File not found in current GitHub-backed workspace: {resolved}", None
+        return resolved, None, "Mapped GitHub blob URL to current session workspace file."
+
+    repo_key = hashlib.sha1(f"{_normalize_github_repo_url(repo_url)}@{branch}".encode("utf-8")).hexdigest()[:12]
+    clone_root = Path(__file__).resolve().parent / ".refactor_repos" / "adhoc"
+    clone_path = clone_root / f"repo-{repo_key}"
+
+    ok, clone_err = _clone_repo_if_needed(repo_url, branch, clone_path)
+    if not ok:
+        return None, clone_err, None
+
+    resolved = clone_path / repo_rel_path
+    if not resolved.exists():
+        return None, f"File not found in auto-cloned repository: {repo_rel_path}", None
+
+    return resolved, None, (
+        "Auto-cloned GitHub repository for refactor workflow fallback in local session. "
+        f"Workspace: {clone_path}"
+    )
 
 
 def _fetch_text_from_url(url: str, timeout: int = 20) -> tuple[str | None, str | None]:
@@ -147,6 +378,32 @@ def _looks_truncated_refactor(original: str, candidate: str, file_suffix: str) -
     return False
 
 
+def _extract_quoted_tokens(text: str) -> list[str]:
+    return re.findall(r"'([^']+)'|\"([^\"]+)\"", text)
+
+
+def _flatten_quoted_tokens(matches: list[tuple[str, str]]) -> list[str]:
+    tokens: list[str] = []
+    for a, b in matches:
+        value = a or b
+        if value:
+            tokens.append(value)
+    return tokens
+
+
+def _tokens_from_semantic_violations(violations: list[str]) -> list[str]:
+    raw = "\n".join(violations or [])
+    matches = _extract_quoted_tokens(raw)
+    tokens = _flatten_quoted_tokens(matches)
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for token in tokens:
+        if token not in seen:
+            seen.add(token)
+            ordered.append(token)
+    return ordered[:60]
+
+
 # ──────────────────────────────────────────────
 # REFACTORING TOOL HANDLERS
 # ──────────────────────────────────────────────
@@ -158,7 +415,11 @@ async def handle_analyze_code(file_path: str, language: str = "", focus: str = "
     """
     resolved_label = file_path
     if _is_http_url(file_path):
-        remote_url = _github_blob_to_raw(file_path.strip())
+        mismatch_error = _github_session_repo_mismatch_error(file_path, workspace_path)
+        if mismatch_error:
+            return {"status": "error", "error": mismatch_error}
+
+        remote_url = _github_blob_to_raw(file_path)
         code, fetch_err = _fetch_text_from_url(remote_url)
         if fetch_err:
             return {"status": "error", "error": fetch_err}
@@ -199,18 +460,26 @@ async def handle_suggest_refactor(file_path: str, smell_type: str, description: 
     smell_type may be a comma-separated list (e.g. "magic_numbers,duplicate_code,long_method").
     Returns the full refactored file content ready for apply_refactor.
     """
+    resolution_note = ""
     if _is_http_url(file_path):
-        return {
-            "status": "error",
-            "error": (
-                "suggest_refactor requires a local workspace file path. "
-                "For GitHub links, start the workflow with source_type='github' and github_url first."
-            ),
-        }
+        resolved_path, resolve_err, note = _resolve_blob_url_to_local_file(file_path, workspace_path)
+        if resolve_err:
+            return {"status": "error", "error": resolve_err}
+        path = resolved_path
+        resolution_note = note or ""
+    else:
+        path = Path(file_path) if Path(file_path).is_absolute() else Path(workspace_path) / file_path
 
-    path = Path(file_path) if Path(file_path).is_absolute() else Path(workspace_path) / file_path
     if not path.exists():
         return {"status": "error", "error": f"File not found: {path}"}
+
+    policy = load_refactor_policy(workspace_path)
+    if is_path_protected_by_policy(path, workspace_path, policy):
+        return {
+            "status": "error",
+            "error": f"Refactor blocked by policy for protected file: {path}",
+            "file_path": str(path),
+        }
 
     full_code = path.read_text(encoding="utf-8")
     total_lines = len(full_code.splitlines())
@@ -223,9 +492,17 @@ async def handle_suggest_refactor(file_path: str, smell_type: str, description: 
         "Rules:\n"
         "1. Fix EVERY code smell listed in the instruction — do not skip any.\n"
         "2. Do NOT change public API signatures, return types, or observable behaviour.\n"
-        "3. Return ONLY the complete refactored file — no line numbers, no explanations, no markdown fences.\n"
-        "4. Preserve all imports and existing functionality.\n"
-        "5. Keep the same indentation style."
+        "3. NEVER rename or change localStorage/sessionStorage keys, env var keys, route paths, auth token names, or cookie/session identifiers.\n"
+        "4. Preserve imports unless they are provably unused and removal cannot change runtime behaviour.\n"
+        "5. Do NOT change HTTP endpoints, request/response field names, DB/schema field names, event names, or cache keys.\n"
+        "6. Do NOT change authentication/authorization logic, role checks, permission checks, redirects, or middleware contracts.\n"
+        "7. Do NOT add/remove side effects (network calls, storage writes, timers, logging severity, analytics/telemetry events).\n"
+        "8. Preserve framework-specific conventions and runtime assumptions (React/Next hooks usage, router APIs, SSR/CSR boundaries).\n"
+        "9. Keep function/class/module names and exported symbol names unchanged unless a rename is explicitly requested in the instruction.\n"
+        "10. Preserve API compatibility: do NOT rename response field keys or change existing HTTP status-code behavior unless explicitly requested.\n"
+        "11. Prefer minimal, localized edits; avoid broad rewrites of unaffected sections.\n"
+        "12. Return ONLY the complete refactored file — no line numbers, no explanations, no markdown fences.\n"
+        "13. Keep the same indentation style."
     )
 
     smell_list = ", ".join(smells)
@@ -263,6 +540,55 @@ async def handle_suggest_refactor(file_path: str, smell_type: str, description: 
             "candidate_lines": len(cleaned.splitlines()),
         }
 
+    safety_check = validate_semantic_safety(full_code, cleaned, path.suffix, policy=policy)
+    safe_retry_used = False
+    if not safety_check["ok"]:
+        # One automatic retry with stricter immutable-token constraints.
+        immutable_tokens = _tokens_from_semantic_violations(safety_check.get("violations", []))
+        retry_system_msg = (
+            system_msg
+            + "\n14. STRICT MODE: You must preserve behavior-sensitive literals exactly."
+            + "\n15. Do not alter any token in the IMMUTABLE TOKENS list."
+            + "\n16. If uncertain, keep original code for that section unchanged."
+        )
+        retry_user_msg = (
+            f"Previous refactor violated semantic safety checks: {safety_check['violations']}.\n"
+            f"IMMUTABLE TOKENS: {immutable_tokens}.\n"
+            "Retry with structural-only refactor (readability, small extraction, dead-code cleanup) "
+            "while preserving ALL behavior-sensitive literals and API contracts.\n\n"
+            f"Complete file ({total_lines} lines):\n\n{full_code}"
+        )
+
+        retried = _call_llm(retry_system_msg, retry_user_msg, max_tokens=max_tokens).strip()
+        if retried.startswith("```"):
+            retried = retried.split("\n", 1)[1].rsplit("```", 1)[0]
+
+        if retried and not retried.startswith("[LLM Error:") and not _looks_truncated_refactor(full_code, retried, path.suffix):
+            retry_safety = validate_semantic_safety(full_code, retried, path.suffix, policy=policy)
+            if retry_safety["ok"]:
+                cleaned = retried
+                safety_check = retry_safety
+                safe_retry_used = True
+            else:
+                safety_check = retry_safety
+
+    if not safety_check["ok"]:
+        return {
+            "status": "error",
+            "error": (
+                "Refactor blocked by semantic safety checks even after a stricter safe retry. "
+                "The proposed change appears to modify behavior-sensitive code."
+            ),
+            "file_path": str(path),
+            "violations": safety_check["violations"],
+            "safe_retry_used": True,
+            "instruction": (
+                "Narrow the refactor scope to structural cleanup only "
+                "(formatting, extraction, naming of local variables, duplication removal) "
+                "without changing storage/env/route/import semantics."
+            ),
+        }
+
     new_content = cleaned
 
     # Save to staging file so it doesn't get truncated in conversation history
@@ -278,6 +604,8 @@ async def handle_suggest_refactor(file_path: str, smell_type: str, description: 
         "refactored_snippet": cleaned[:500] + ("\n... [see staged file for full code]" if len(cleaned) > 500 else ""),
         "staging_path": str(staging_file),
         "lines_affected": lines or f"1-{total_lines}",
+        "resolution_note": resolution_note,
+        "safe_retry_used": safe_retry_used,
         "instruction": "Refactored code is staged. Call diff_preview with new_content='staged' and then apply_refactor with new_content='staged' to apply it.",
     }
 
@@ -287,7 +615,14 @@ async def handle_diff_preview(file_path: str, new_content: str = "staged", works
     Generate a unified diff between the original file and proposed new content.
     If new_content is 'staged', reads from the staging file created by suggest_refactor.
     """
-    path = Path(file_path) if Path(file_path).is_absolute() else Path(workspace_path) / file_path
+    if _is_http_url(file_path):
+        resolved_path, resolve_err, _ = _resolve_blob_url_to_local_file(file_path, workspace_path)
+        if resolve_err:
+            return {"status": "error", "error": resolve_err}
+        path = resolved_path
+    else:
+        path = Path(file_path) if Path(file_path).is_absolute() else Path(workspace_path) / file_path
+
     if not path.exists():
         return {"status": "error", "error": f"File not found: {path}"}
 
@@ -330,7 +665,13 @@ async def handle_apply_refactor(file_path: str, new_content: str = "staged", wor
     If new_content is 'staged', reads from the staging file created by suggest_refactor.
     Should only be called after user approval.
     """
-    path = Path(file_path) if Path(file_path).is_absolute() else Path(workspace_path) / file_path
+    if _is_http_url(file_path):
+        resolved_path, resolve_err, _ = _resolve_blob_url_to_local_file(file_path, workspace_path)
+        if resolve_err:
+            return {"status": "error", "error": resolve_err}
+        path = resolved_path
+    else:
+        path = Path(file_path) if Path(file_path).is_absolute() else Path(workspace_path) / file_path
 
     # If 'staged', read refactored content from the staging file
     if new_content == "staged" or not new_content.strip():
@@ -340,6 +681,24 @@ async def handle_apply_refactor(file_path: str, new_content: str = "staged", wor
         new_content = staging_file.read_text(encoding="utf-8")
         # Clean up staging file
         staging_file.unlink(missing_ok=True)
+
+    policy = load_refactor_policy(workspace_path)
+    if is_path_protected_by_policy(path, workspace_path, policy):
+        return {
+            "status": "error",
+            "error": f"Apply blocked by policy for protected file: {path}",
+            "file_path": str(path),
+        }
+
+    original_content = path.read_text(encoding="utf-8") if path.exists() else ""
+    safety_check = validate_semantic_safety(original_content, new_content, path.suffix, policy=policy)
+    if not safety_check["ok"]:
+        return {
+            "status": "error",
+            "error": "Apply blocked by semantic safety checks. No file changes were written.",
+            "file_path": str(path),
+            "violations": safety_check["violations"],
+        }
 
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -481,7 +840,11 @@ async def handle_run_tests(test_command: str = "pytest", test_path: str = "", so
 async def handle_read_file(file_path: str, workspace_path: str = ".", **_) -> dict:
     """Read a local file or remote GitHub URL."""
     if _is_http_url(file_path):
-        remote_url = _github_blob_to_raw(file_path.strip())
+        mismatch_error = _github_session_repo_mismatch_error(file_path, workspace_path)
+        if mismatch_error:
+            return {"status": "error", "error": mismatch_error}
+
+        remote_url = _github_blob_to_raw(file_path)
         content, fetch_err = _fetch_text_from_url(remote_url)
         if fetch_err:
             return {"status": "error", "error": fetch_err}

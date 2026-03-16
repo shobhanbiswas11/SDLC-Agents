@@ -21,7 +21,7 @@ from config_loader import load_all_config
 SYSTEM_PROMPT, TOOL_SCHEMAS, TOOL_NAMES = load_all_config()
 
 
-def _augment_message_with_github_paths(message: str) -> str:
+def _augment_message_with_github_paths(message: str, workspace_path: str = ".") -> str:
     """
     If user provides a GitHub blob URL, append a normalized repository-relative
     file path hint so the agent can call file tools correctly.
@@ -40,8 +40,17 @@ def _augment_message_with_github_paths(message: str) -> str:
     if not extracted_paths:
         return message
 
-    hint_lines = ["", "Detected GitHub blob URL(s). Use these repository-relative file path(s):"]
-    hint_lines.extend([f"- {path}" for path in extracted_paths])
+    is_github_backed = ".refactor_repos" in (workspace_path or "")
+    hint_lines = ["", "Detected GitHub blob URL(s)."]
+    if is_github_backed:
+        hint_lines.append("This session is GitHub-backed. Prefer these repository-relative file path(s):")
+        hint_lines.extend([f"- {path}" for path in extracted_paths])
+    else:
+        hint_lines.append(
+            "This session is local (not a cloned GitHub workspace). "
+            "Use the full GitHub URL directly with read_file/analyze_code. "
+            "Do NOT use repository-relative paths in this session."
+        )
     return message + "\n" + "\n".join(hint_lines)
 
 
@@ -94,6 +103,8 @@ class AgentWorkflow:
             "last_response": self._last_response,
             "waiting_for_user": self._waiting_for_user,
             "message_count": len(self._history),
+            "workspace_path": self._workspace_path,
+            "is_github_backed": ".refactor_repos" in (self._workspace_path or ""),
         }
 
     # ── Main Loop ─────────────────────────────────────────────────────────
@@ -141,7 +152,7 @@ class AgentWorkflow:
         The core think → act → observe loop.
         Includes a confirmation gate for apply_refactor.
         """
-        normalized_message = _augment_message_with_github_paths(user_message)
+        normalized_message = _augment_message_with_github_paths(user_message, self._workspace_path)
         self._history.append({"role": "user", "content": normalized_message})
 
         max_steps = 15  # More steps for multi-tool refactoring workflows
