@@ -1,7 +1,7 @@
 import React from "react";
 import clsx from "clsx";
 
-const MessageBubble = ({ role = "assistant", content, isLoading = false }) => {
+const MessageBubble = ({ role = "assistant", content, isLoading = false, progressMessage }) => {
   const isUser = role === "user";
 
   return (
@@ -20,9 +20,16 @@ const MessageBubble = ({ role = "assistant", content, isLoading = false }) => {
         )}
       >
         {isLoading ? (
-          <div className="flex items-center gap-2 text-zinc-400">
-            <span className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin"></span>
-            Thinking...
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-zinc-400">
+              <span className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin"></span>
+              <span
+                key={progressMessage}
+                className="animate-fade-in text-zinc-300"
+              >
+                {progressMessage || "Thinking..."}
+              </span>
+            </div>
           </div>
         ) : (
           content

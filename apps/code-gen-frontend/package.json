@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@assistant-ui/react": "^0.12.15",
     "assistant-ui": "^0.0.80",
     "axios": "^1.13.5",
     "clsx": "^2.1.1",

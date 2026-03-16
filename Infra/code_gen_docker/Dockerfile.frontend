@@ -1,0 +1,28 @@
+# Dockerfile.frontend
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Enable pnpm
+RUN npm install -g pnpm
+
+# Copy root monorepo files for pnpm workspace
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy the frontend package.json
+COPY apps/code-gen-frontend/package.json ./apps/code-gen-frontend/
+
+# Install dependencies filtering only for the code-gen-frontend workspace
+RUN pnpm install --filter code-gen-frontend...
+
+# Copy the rest of the frontend source code
+COPY apps/code-gen-frontend ./apps/code-gen-frontend/
+
+# Set working directory to the frontend app
+WORKDIR /app/apps/code-gen-frontend
+
+# Expose Vite's default development port
+EXPOSE 5173
+
+# Run Vite with network exposure flags
+CMD ["pnpm", "dev", "--host", "0.0.0.0"]

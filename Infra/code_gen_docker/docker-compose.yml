@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: Infra/code_gen_docker/Dockerfile.backend
+    container_name: code_gen_backend
+    ports:
+      - "8000:8000"
+    # volumes:
+    #   # Mount the local backend directory to the container to enable hot-reloading
+    #   - ../../backend/code_gen_agent:/app/backend/code_gen_agent
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Uncomment and specify path to .env file if needed
+      # env_file:
+      - ../../backend/code_gen_agent/.env
+
+  frontend:
+    build:
+      context: ../..
+      dockerfile: Infra/code_gen_docker/Dockerfile.frontend
+    container_name: code_gen_frontend
+    ports:
+      - "5173:5173"
+    # volumes:
+    #   # Mount the local frontend directory to the container to enable hot-reloading
+    #   - ../../apps/code-gen-frontend:/app/apps/code-gen-frontend
+    #   # Prevent the host node_modules from overwriting the container's to avoid OS-specific binding issues
+    #   - /app/node_modules
+    #   - /app/apps/code-gen-frontend/node_modules
+    # environment:
+    #   # These flags help Vite's hot-reloading process when running inside Docker, especially on Windows
+    #   - CHOKIDAR_USEPOLLING=true
+    #   - WATCHPACK_POLLING=true
+    depends_on:
+      - backend

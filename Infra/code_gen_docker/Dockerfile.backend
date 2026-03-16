@@ -1,0 +1,22 @@
+# Dockerfile.backend
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy the requirements file to the appropriate backend path
+COPY backend/code_gen_agent/requirements.txt ./backend/code_gen_agent/
+
+# Install the dependencies
+RUN pip install --no-cache-dir -r backend/code_gen_agent/requirements.txt
+
+# Copy the rest of the backend source code
+COPY backend/code_gen_agent ./backend/code_gen_agent/
+
+# Set the working directory to the backend folder
+WORKDIR /app/backend/code_gen_agent
+
+# Expose the API port
+EXPOSE 8000
+
+# Start uvicorn with reload support for development
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -1,41 +1,119 @@
-node_modules
+# ===============================
+
+# OS Files
+
+# ===============================
+
 .DS_Store
-dist
-dist-ssr
-*.local
+Thumbs.db
+
+# ===============================
+
+# Logs
+
+# ===============================
+
+*.log
+logs/
+
+# ===============================
+
+# Environment Files
+
+# ===============================
+
 .env
-.nitro
-.tanstack
-.wrangler
-.output
-.vinxi
-__unconfig*
-todos.json
+.env.*
+backend/.env
+*.local
+
+# ===============================
+
 # Python
-__pycache__/
+
+# ===============================
+
+**pycache**/
 *.pyc
 *.pyo
 *.pyd
+*.py[cod]
 
-# Virtual Environment
+# Python virtual environments
+
 venv/
+.venv/
 backend/venv/
-.env
-backend/.env
+backend/.venv/
 
-# Backend artifacts
-backend/artifacts/
+# Python build files
 
-# Build folders
-dist/
 build/
+dist/
+*.egg-info/
+.eggs/
 
-# Node
+# ===============================
+
+# Backend Generated Artifacts
+
+# ===============================
+
+backend/artifacts/
+backend/code_gen_agent/artifacts/
+*.zip
+
+# ===============================
+
+# Node / Frontend
+
+# ===============================
+
 node_modules/
+dist/
+dist-ssr/
+.output/
+.nitro/
+.vinxi/
 
-# Logs
-*.log
+# Package managers
 
-# OS
-.DS_Store
-Thumbs.db
+pnpm-debug.log*
+npm-debug.log*
+yarn-error.log*
+
+# ===============================
+
+# Frontend Framework Caches
+
+# ===============================
+
+.tanstack
+.wrangler
+__unconfig*
+
+# ===============================
+
+# Build Outputs
+
+# ===============================
+
+build/
+dist/
+
+# ===============================
+
+# IDE / Editor
+
+# ===============================
+
+.vscode/
+.idea/
+
+# ===============================
+
+# Misc
+
+# ===============================
+
+todos.json

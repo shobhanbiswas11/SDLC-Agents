@@ -2,7 +2,7 @@ import React from "react";
 import MessageBubble from "./MessageBubble";
 import ProjectResult from "./ProjectResult";
 
-const ChatWindow = ({ messages, isLoading, generationResult }) => {
+const ChatWindow = ({ messages, isLoading, generationResult, progressMessage }) => {
   return (
     <div className="space-y-6">
       {messages.map((message) => {
@@ -32,7 +32,7 @@ const ChatWindow = ({ messages, isLoading, generationResult }) => {
       })}
 
       {isLoading && (
-        <MessageBubble role="assistant" isLoading />
+        <MessageBubble role="assistant" isLoading progressMessage={progressMessage} />
       )}
     </div>
   );

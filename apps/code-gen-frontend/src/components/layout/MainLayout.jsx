@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import ChatWindow from "../chat/ChatWindow";
@@ -19,6 +19,36 @@ const MainLayout = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [missingFields, setMissingFields] = useState(null);
   const [generationResult, setGenerationResult] = useState(null);
+  const [progressStep, setProgressStep] = useState(0);
+  const progressTimer = useRef(null);
+
+  const progressMessages = [
+    "Analyzing your requirements...",
+    "Designing project structure...",
+    "Generating folder tree...",
+    "Creating source files...",
+    "Writing business logic...",
+    "Setting up configurations...",
+    "Adding route handlers...",
+    "Generating boilerplate...",
+    "Validating file structure...",
+    "Building init commands...",
+    "Packaging project files...",
+    "Almost there...",
+  ];
+
+  useEffect(() => {
+    if (isLoading) {
+      setProgressStep(0);
+      progressTimer.current = setInterval(() => {
+        setProgressStep((prev) => (prev + 1) % progressMessages.length);
+      }, 3000);
+    } else {
+      clearInterval(progressTimer.current);
+      setProgressStep(0);
+    }
+    return () => clearInterval(progressTimer.current);
+  }, [isLoading]);
 
   const handleClarificationSubmit = async (answers) => {
     if (isLoading) return;
@@ -163,6 +193,7 @@ const MainLayout = () => {
               messages={messages}
               isLoading={isLoading}
               generationResult={generationResult}
+              progressMessage={isLoading ? progressMessages[progressStep] : null}
             />
           </div>
 
