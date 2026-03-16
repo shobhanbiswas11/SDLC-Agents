@@ -1,0 +1,23 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+RUN npm install -g pnpm
+
+ENV CI=true
+
+COPY apps/coding-standards-enforcer/package.json apps/coding-standards-enforcer/pnpm-lock.yaml ./
+
+RUN pnpm install
+
+COPY apps/coding-standards-enforcer .
+
+RUN pnpm build
+
+FROM nginx:alpine
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

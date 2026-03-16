@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  backend:
+    container_name: coding-standards-backend
+    build:
+      context: ../../
+      dockerfile: Infra/coding-standards-agent/Dockerfile.backend
+    ports:
+      - "8000:8000"
+
+  frontend:
+    container_name: coding-standards-frontend
+    build:
+      context: ../../
+      dockerfile: Infra/coding-standards-agent/Dockerfile.frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend

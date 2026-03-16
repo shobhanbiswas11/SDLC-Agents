@@ -1,0 +1,33 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Backend service for AI DevOps agents"
+readme = "README.md"
+
+# Minimum Python version required for this project
+requires-python = ">=3.14"
+
+# Project dependencies
+dependencies = [
+
+    # Core server
+    "fastapi>=0.126.0",        # Web framework for building APIs
+    "uvicorn>=0.38.0",         # ASGI server to run FastAPI
+    "python-dotenv>=1.0.0",    # Load environment variables from .env
+    "pydantic>=2.0",           # Data validation
+
+    # Azure + LLM integrations
+    "azure-identity>=1.20.0",  # Authentication with Azure services
+    "langchain-core>=0.3.0",   # Core LangChain framework
+    "langchain-openai>=0.3.0", # OpenAI / Azure OpenAI integration for LangChain
+
+    # HTTP client
+    "requests>=2.31.0",        # Used for calling external APIs
+
+    # Linters & formatters (development tools)
+    "black>=25.1.0",           # Code formatter
+    "flake8>=7.3.0",           # Linting tool for Python code quality
+    "isort>=6.0.0",            # Sorts Python imports
+    "autopep8>=2.3.0",         # Automatically fixes PEP8 issues
+    "autoflake>=2.3.0",        # Removes unused imports and variables
+]
