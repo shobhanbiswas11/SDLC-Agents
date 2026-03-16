@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  iac-frontend:
+    build:
+      context: ../../apps/Infrastructure as Code Agent/iac-frontend
+      dockerfile: ../../../infra/Infrastructure as Code Agent/Dockerfile.frontend
+    ports:
+      - "5174:5174"
+    env_file:
+      - .env
+    depends_on:
+      - iac-backend
+
+  iac-backend:
+    build:
+      context: ../../backend/Infrastructure as Code Agent/iac-backend
+      dockerfile: ../../../infra/Infrastructure as Code Agent/Dockerfile.backend
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env

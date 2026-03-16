@@ -1,0 +1,22 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package.json and lock file
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies
+RUN pnpm install
+
+# Copy only the source files we need 
+COPY index.html vite.config.js ./
+COPY src ./src/
+
+# Expose Vite default port
+EXPOSE 5173
+
+# Run Vite dev server, host 0.0.0.0 to be accessible outside the container
+CMD ["pnpm", "run", "dev", "--host"]

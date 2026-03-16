@@ -1,0 +1,14 @@
+node_modules
+dist
+.vscode
+.git
+.env
+.env.*
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+venv
+.venv
+.pytest_cache
+uv.lock

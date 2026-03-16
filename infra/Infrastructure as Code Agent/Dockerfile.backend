@@ -1,0 +1,28 @@
+FROM python:3.14-slim
+
+WORKDIR /app
+
+# Copy requirements file and uv.lock
+COPY app/requirements.txt .
+COPY uv.lock .
+
+# Install dependencies via uv for fast resolving
+RUN pip install --no-cache-dir uv && \
+    uv pip install --system --no-cache -r requirements.txt
+
+# Copy only the app source code (skip __pycache__, venv, etc.)
+COPY app/main.py app/main.py
+COPY app/agent_tools.py app/agent_tools.py
+COPY app/iac_agent.py app/iac_agent.py
+COPY app/iac_writer.py app/iac_writer.py
+COPY app/policy_engine.py app/policy_engine.py
+COPY app/llm app/llm/
+
+# Setup Python path
+ENV PYTHONPATH=/app
+
+# Expose backend port
+EXPOSE 8001
+
+# Start Uvicorn
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]

@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  arch-desgn-frontend:
+    build:
+      context: ../../apps/Architecture Design Agent/arch-desgn-frontend
+      dockerfile: ../../../infra/Architecture Design Agent/Dockerfile.frontend
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    depends_on:
+      - arch-desgn-backend
+
+  arch-desgn-backend:
+    build:
+      context: ../../backend/Architecture Design Agent/arch-desgn-backend
+      dockerfile: ../../../infra/Architecture Design Agent/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
