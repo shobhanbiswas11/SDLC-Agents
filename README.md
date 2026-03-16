@@ -51,6 +51,13 @@ You can run each agent stack in 2 ways:
 
 ### 1) Docker Compose (recommended)
 
+Before starting either stack, set Temporal Cloud values in each infra `.env` file:
+
+- `TEMPORAL_ADDRESS` (example: `your-namespace.tmprl.cloud:7233`)
+- `TEMPORAL_NAMESPACE`
+- `TEMPORAL_API_KEY`
+- `TEMPORAL_TLS=true`
+
 #### Code Refactor Agent stack
 
 ```bash
@@ -105,8 +112,8 @@ If you deploy on a VM/firewall, open these **host ports**.
 
 ### Temporal transport ports
 
-- **7233** → Refactor stack Temporal
-- **8233** → Documentation stack Temporal
+- No inbound Temporal port is required when using Temporal Cloud.
+- Your containers need outbound access to your Temporal Cloud endpoint on port **7233**.
 
 ### Quick URL check
 

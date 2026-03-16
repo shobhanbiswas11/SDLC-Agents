@@ -1,34 +1,4 @@
 services:
-  temporal-postgres:
-    image: postgres:13
-    container_name: doc-temporal-postgres
-    environment:
-      POSTGRES_USER: temporal
-      POSTGRES_PASSWORD: temporal
-    volumes:
-      - doc-temporal-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U temporal"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-    restart: unless-stopped
-
-  temporal:
-    image: temporalio/auto-setup:1.25.2
-    container_name: doc-temporal
-    environment:
-      DB: postgres12
-      DB_PORT: 5432
-      POSTGRES_USER: temporal
-      POSTGRES_PWD: temporal
-      POSTGRES_SEEDS: temporal-postgres
-    ports:
-      - "${TEMPORAL_HOST_PORT:-8233}:7233"
-    depends_on:
-      temporal-postgres:
-        condition: service_healthy
-    restart: unless-stopped
 
   doc-first-ai-api:
     build:
@@ -57,10 +27,10 @@ services:
     container_name: doc-simple-api
     environment:
       PORT: 8001
-      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
+      TEMPORAL_ADDRESS: "${TEMPORAL_ADDRESS:?Set Temporal Cloud endpoint, e.g. your-namespace.tmprl.cloud:7233}"
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
       TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:-}
-      TEMPORAL_TLS: ${TEMPORAL_TLS:-false}
+      TEMPORAL_TLS: ${TEMPORAL_TLS:-true}
       AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
       AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2025-01-01-preview}
       AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-gpt-4o}
@@ -71,8 +41,6 @@ services:
       AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
     ports:
       - "${DOC_SIMPLE_API_HOST_PORT:-18101}:8001"
-    depends_on:
-      - temporal
     restart: unless-stopped
 
   doc-simple-worker:
@@ -81,10 +49,10 @@ services:
       dockerfile: "infra/Documentation Drafting agent/Dockerfile.simple-worker"
     container_name: doc-simple-worker
     environment:
-      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
+      TEMPORAL_ADDRESS: "${TEMPORAL_ADDRESS:?Set Temporal Cloud endpoint, e.g. your-namespace.tmprl.cloud:7233}"
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
       TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:-}
-      TEMPORAL_TLS: ${TEMPORAL_TLS:-false}
+      TEMPORAL_TLS: ${TEMPORAL_TLS:-true}
       AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
       AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2025-01-01-preview}
       AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-gpt-4o}
@@ -93,8 +61,6 @@ services:
       AZURE_TENANT_ID: ${AZURE_TENANT_ID:-}
       AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
       AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
-    depends_on:
-      - temporal
     restart: unless-stopped
 
   doc-ui:
@@ -111,6 +77,3 @@ services:
       - doc-first-ai-api
       - doc-simple-api
     restart: unless-stopped
-
-volumes:
-  doc-temporal-postgres-data:

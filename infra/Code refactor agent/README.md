@@ -20,13 +20,13 @@ Each service has different runtime needs:
 
 `docker-compose` can build each service from a different Dockerfile.
 
-## Run with Temporal Cloud (your current mode)
+## Run with Temporal Cloud
 
 From this folder:
 
 ```bash
 cp .env.example .env
-# fill Azure values in .env
+# fill Azure + Temporal Cloud values in .env
 
 docker compose -f docker-compose.yml up --build
 ```
@@ -36,21 +36,17 @@ Services:
 - UI: `http://localhost:3001`
 - API: `http://localhost:8002`
 
-In this mode, `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, `TEMPORAL_API_KEY`, and `TEMPORAL_TLS` are read from `.env`.
+Required Temporal values in `.env`:
 
-## Run with local Temporal instead
-
-```bash
-docker compose --profile local-temporal up --build
-```
-
-This starts extra containers (`temporal`, `temporal-postgres`) and uses local Temporal at `localhost:7233`.
+- `TEMPORAL_ADDRESS=your-namespace.tmprl.cloud:7233`
+- `TEMPORAL_NAMESPACE=default` (or your namespace)
+- `TEMPORAL_API_KEY=<your-temporal-cloud-api-key>`
+- `TEMPORAL_TLS=true`
 
 If ports are already in use on your machine, set these in `.env` before running:
 
 - `API_HOST_PORT` (default `8002`)
 - `UI_HOST_PORT` (default `3001`)
-- `TEMPORAL_HOST_PORT` (default `7233`)
 
 ## Stop
 
