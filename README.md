@@ -1,5 +1,7 @@
 # AI Agent Monorepo
 
+> Happy coding!
+
 Monorepo for two AI agent systems:
 
 1. **Code Refactor Agent**
