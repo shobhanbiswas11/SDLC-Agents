@@ -123,11 +123,3 @@ If you deploy on a VM/firewall, open these **host ports**.
 - Documentation 1st AI API: `http://localhost:18100/docs`
 - Documentation Simple API: `http://localhost:18101/docs`
 
-## Git Hygiene (Push Safety)
-
-The root `.gitignore` excludes generated/runtime/sensitive files, including:
-
-- `**/.env` and `**/.env.*` (except `.env.example`)
-- `**/.venv/` and `**/venv/`
-- `**/node_modules/`
-- `**/__pycache__/`, test/build caches, and logs
