@@ -50,7 +50,7 @@ From another computer, open the frontend URL (or your server IP:3001) and it wil
 
 ## Startup Order
 
-1. `temporal server start-dev` — Temporal on port 7233
+1. Set Temporal Cloud env in backend shell (`TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, `TEMPORAL_API_KEY`, `TEMPORAL_TLS=true`)
 2. `cd refactor-agent && python worker.py` — Worker
 3. `cd refactor-agent && python api.py` — API on port 8002
 4. `cd refactor-agent-ui && pnpm run dev` — Frontend on port 3001

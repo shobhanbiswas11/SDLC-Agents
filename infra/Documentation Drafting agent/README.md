@@ -32,5 +32,3 @@ Required Temporal values in `.env`:
 ```bash
 docker compose down
 ```
-
-Use `docker compose down -v` to remove Temporal Postgres volume.

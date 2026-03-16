@@ -55,8 +55,11 @@ If no policy exists, built-in conservative safety rules still apply.
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Start Temporal (in a separate terminal)
-temporal server start-dev
+# 2. Set Temporal Cloud connection
+export TEMPORAL_ADDRESS=<your-namespace.tmprl.cloud:7233>
+export TEMPORAL_NAMESPACE=<your-namespace>
+export TEMPORAL_API_KEY=<your-temporal-api-key>
+export TEMPORAL_TLS=true
 
 # 3. Start the worker
 python worker.py
@@ -72,10 +75,10 @@ API runs on port **8002**.
 ### Required environment variables
 
 - `PORT` (optional, default: `8002`)
-- `TEMPORAL_ADDRESS` (default: `localhost:7233`)
+- `TEMPORAL_ADDRESS` (required, example: `your-namespace.tmprl.cloud:7233`)
 - `TEMPORAL_NAMESPACE` (default: `default`)
-- `TEMPORAL_API_KEY` (optional for local; required for Temporal Cloud)
-- `TEMPORAL_TLS` (`true`/`false`, optional)
+- `TEMPORAL_API_KEY` (required for Temporal Cloud)
+- `TEMPORAL_TLS` (`true` for Temporal Cloud)
 - Azure OpenAI values in `.env` (already used by the app)
 
 Example:
