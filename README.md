@@ -1,4 +1,4 @@
-# ITC AI Agent
+# AI Agent Monorepo
 
 Monorepo for two AI agent systems:
 
