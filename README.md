@@ -1,59 +1,52 @@
 # ITC AI Agent
 
-Monorepo for AI agent applications and services.
+Monorepo for two AI agent systems:
+
+1. **Code Refactor Agent**
+2. **Documentation Drafting Agent**
 
 ## Repository Structure
 
 - `apps/`
-  - `Code refactor agent/refactor-agent-ui` — Next.js frontend
-  - `Documentation Drafting agent/` — reserved for documentation agent app
+  - `Code refactor agent/refactor-agent-ui` — frontend for Code Refactor Agent
+  - `Documentation Drafting agent` — frontend for Documentation Drafting Agent
 - `backend/`
-  - `Code refactor agent/refactor-agent` — FastAPI + Temporal backend and worker
-  - `Documentation Drafting agent/` — reserved for documentation agent backend
+  - `Code refactor agent/refactor-agent` — FastAPI + Temporal backend/worker
+  - `Documentation Drafting agent/1st AI agent` — README drafting API service
+  - `Documentation Drafting agent/simple-agent` — FastAPI + Temporal backend/worker
 - `infra/`
-  - `Code refactor agent/` — infrastructure assets (Docker, compose, deployment)
+  - `Code refactor agent` — Docker/compose for Code Refactor Agent
+  - `Documentation Drafting agent` — Docker/compose for Documentation Drafting Agent
+
+## Agent Entry Points
+
+### Code Refactor Agent
+
+- Frontend: `apps/Code refactor agent/refactor-agent-ui`
+- Backend: `backend/Code refactor agent/refactor-agent`
+- Infra: `infra/Code refactor agent`
+
+### Documentation Drafting Agent
+
+- Frontend: `apps/Documentation Drafting agent`
+- Backends:
+  - `backend/Documentation Drafting agent/1st AI agent`
+  - `backend/Documentation Drafting agent/simple-agent`
+- Infra: `infra/Documentation Drafting agent`
 
 ## Quick Start
 
-### Backend
+Use each agent's own README for exact commands:
 
-```bash
-cd "backend/Code refactor agent/refactor-agent"
-pip install -r requirements.txt
-python worker.py
-python api.py
-```
+- Code Refactor backend: `backend/Code refactor agent/refactor-agent/README.md`
+- Code Refactor infra: `infra/Code refactor agent/README.md`
+- Documentation Drafting infra: `infra/Documentation Drafting agent/README.md`
 
-### Frontend
+## Git Hygiene (Push Safety)
 
-```bash
-cd "apps/Code refactor agent/refactor-agent-ui"
-pnpm install
-pnpm run dev
-```
+The root `.gitignore` excludes generated/runtime/sensitive files, including:
 
-## GitHub Readiness Notes
-
-This repository intentionally ignores generated/runtime artifacts and secrets via the root `.gitignore`, including:
-
-- Python virtual environments and caches
-- Node modules and Next.js build output
-- Local `.env` files
-- Refactor-agent temporary clone/staging folders
-
-Before pushing, ensure your infra files are complete if you plan to deploy from this repo:
-
-- `infra/Code refactor agent/Dockerfile`
-- `infra/Code refactor agent/docker-compose.yml`
-
-## Refactor Agent Containers
-
-The refactor agent now has a complete container setup in:
-
-- `infra/Code refactor agent/README.md`
-
-It includes:
-
-- One compose stack (`docker-compose.yml`)
-- Dedicated Dockerfiles for API, worker, and UI
-- `.env.example` template for required Azure settings
+- `**/.env` and `**/.env.*` (except `.env.example`)
+- `**/.venv/` and `**/venv/`
+- `**/node_modules/`
+- `**/__pycache__/`, test/build caches, and logs
