@@ -42,6 +42,80 @@ Use each agent's own README for exact commands:
 - Code Refactor infra: `infra/Code refactor agent/README.md`
 - Documentation Drafting infra: `infra/Documentation Drafting agent/README.md`
 
+## Docker Guide (Both Agents)
+
+You can run each agent stack in 2 ways:
+
+1. **Docker Compose (recommended)**
+2. **Build each Dockerfile manually**
+
+### 1) Docker Compose (recommended)
+
+#### Code Refactor Agent stack
+
+```bash
+cd "infra/Code refactor agent"
+cp .env.example .env
+docker compose up --build -d
+```
+
+#### Documentation Drafting Agent stack
+
+```bash
+cd "infra/Documentation Drafting agent"
+cp .env.example .env
+docker compose up --build -d
+```
+
+### 2) Build Dockerfiles manually (advanced)
+
+From repository root:
+
+#### Code Refactor Agent images
+
+```bash
+docker build -f "infra/Code refactor agent/Dockerfile" -t refactor-api:local .
+docker build -f "infra/Code refactor agent/worker.Dockerfile" -t refactor-worker:local .
+docker build -f "infra/Code refactor agent/ui.Dockerfile" -t refactor-ui:local .
+```
+
+#### Documentation Drafting Agent images
+
+```bash
+docker build -f "infra/Documentation Drafting agent/Dockerfile.first-ai" -t doc-first-ai-api:local .
+docker build -f "infra/Documentation Drafting agent/Dockerfile.simple-api" -t doc-simple-api:local .
+docker build -f "infra/Documentation Drafting agent/Dockerfile.simple-worker" -t doc-simple-worker:local .
+docker build -f "infra/Documentation Drafting agent/Dockerfile.ui" -t doc-ui:local .
+```
+
+## Ports to Open
+
+If you deploy on a VM/firewall, open these **host ports**.
+
+### Frontend ports (most important)
+
+- **3001** → Code Refactor Agent UI
+- **13100** → Documentation Drafting Agent UI
+
+### Backend/API ports
+
+- **8002** → Refactor API
+- **18100** → Documentation 1st AI API
+- **18101** → Documentation Simple Agent API
+
+### Temporal transport ports
+
+- **7233** → Refactor stack Temporal
+- **8233** → Documentation stack Temporal
+
+### Quick URL check
+
+- Refactor UI: `http://localhost:3001`
+- Refactor API: `http://localhost:8002/docs`
+- Documentation UI: `http://localhost:13100`
+- Documentation 1st AI API: `http://localhost:18100/docs`
+- Documentation Simple API: `http://localhost:18101/docs`
+
 ## Git Hygiene (Push Safety)
 
 The root `.gitignore` excludes generated/runtime/sensitive files, including:
