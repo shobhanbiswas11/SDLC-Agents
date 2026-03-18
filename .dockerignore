@@ -1,0 +1,29 @@
+# Git metadata
+.git
+.gitignore
+
+# Editor/OS files
+.vscode
+.idea
+.DS_Store
+
+# Python
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.venv
+**/*.pyc
+
+# Node
+**/node_modules
+**/dist
+**/.pnpm-store
+
+# Runtime env and local-only files
+**/.env
+**/.env.*
+
+# Build / compose artifacts
+**/coverage
+**/*.log

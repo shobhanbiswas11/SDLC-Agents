@@ -1,0 +1,10 @@
+.app-layout {
+	width: 100%;
+	isolation: isolate;
+}
+
+@media (max-width: 900px) {
+	.app-layout {
+		min-height: 100vh;
+	}
+}

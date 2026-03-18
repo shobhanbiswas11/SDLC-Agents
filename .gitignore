@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+!/.env.example
+
+# Node / frontend artifacts
+node_modules/
+dist/
+build/
+coverage/
+.pnpm-store/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Editor / IDE
+.idea/
+.vscode/

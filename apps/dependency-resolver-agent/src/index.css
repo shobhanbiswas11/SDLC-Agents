@@ -1,0 +1,148 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap");
+
+:root {
+  --bg-canvas: #e9eff5;
+  --bg-page: #f5f7fb;
+  --bg-surface: #ffffff;
+  --bg-surface-soft: #f8fbff;
+  --bg-sidebar: #0f253d;
+  --bg-sidebar-elevated: #163351;
+
+  --border-soft: #d8e2ee;
+  --border-strong: #bfd0e2;
+
+  --text-strong: #16283d;
+  --text-body: #30465e;
+  --text-muted: #657a92;
+  --text-inverse: #f2f8ff;
+
+  --accent-primary: #0a6ebd;
+  --accent-primary-strong: #09589b;
+  --accent-secondary: #0099c7;
+  --accent-success: #0f8e5c;
+  --accent-warning: #b07218;
+  --accent-danger: #bb2d2d;
+
+  --gradient-accent: linear-gradient(120deg, #0a6ebd 0%, #0099c7 100%);
+
+  --shadow-sm: 0 2px 8px rgba(15, 42, 70, 0.06);
+  --shadow-md: 0 10px 28px rgba(15, 42, 70, 0.11);
+  --shadow-lg: 0 20px 44px rgba(15, 42, 70, 0.16);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  --font-sans: "Manrope", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
+  --transition-fast: 140ms ease;
+  --transition-base: 220ms ease;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  color: var(--text-body);
+  line-height: 1.58;
+  background:
+    radial-gradient(circle at 16% 8%, rgba(0, 153, 199, 0.16), transparent 34%),
+    radial-gradient(circle at 86% 92%, rgba(10, 110, 189, 0.18), transparent 30%),
+    linear-gradient(180deg, var(--bg-page) 0%, var(--bg-canvas) 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(22, 40, 61, 0.06);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(22, 40, 61, 0.27);
+  border-radius: 12px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(22, 40, 61, 0.42);
+}
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 380ms var(--transition-base) both;
+}
+
+.slide-in {
+  animation: slideInLeft 340ms var(--transition-base) both;
+}
+
+@media (max-width: 900px) {
+  .app-layout {
+    flex-direction: column;
+  }
+}

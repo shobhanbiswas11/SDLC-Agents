@@ -1,0 +1,33 @@
+[project]
+name = "dependency-resolver-agent"
+version = "0.1.0"
+description = "Analyzes repositories and resolves all dependencies recursively"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "requests>=2.32.0",
+    "httpx>=0.28.0",
+    "networkx>=3.4",
+    "packaging>=24.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    "typer[all]>=0.15.0",
+    "rich>=13.9.0",
+    "diskcache>=5.6.0",
+    "langchain>=0.3.0",
+    "langchain-openai>=0.3.0",
+    "azure-identity>=1.19.0",
+    "openai>=1.60.0",
+    "gitpython>=3.1.44",
+]
+
+[project.scripts]
+resolver = "app.cli.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
