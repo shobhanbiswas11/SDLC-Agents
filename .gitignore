@@ -1,0 +1,19 @@
+# Virtual Environment
+venv/
+laa-backend/venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+laa-backend/.env
+
+# extra folders
+laa-backend/log_files
+laa-backend/output
+laa-backend/docs
+
+# OS files
+.DS_Store

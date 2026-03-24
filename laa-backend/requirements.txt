@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+python-multipart
+python-dotenv
+
+# LLM + LangChain
+langchain
+langchain-core
+langchain-openai
+
+# Azure Authentication
+azure-identity
+
+# Data processing
+numpy
+scikit-learn
