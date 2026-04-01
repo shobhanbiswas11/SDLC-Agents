@@ -38,3 +38,8 @@ Thumbs.db
 # Temporary files
 **/*.tmp
 **/*.swp
+
+# Large binaries
+**/temporal.exe
+**/temporal
+**/*.exe

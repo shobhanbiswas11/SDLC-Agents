@@ -1,0 +1,20 @@
+# Optimize Image Tool
+# Rewrites the Dockerfile to use multi-stage builds and Alpine base images.
+
+name: optimize_image
+description: Rewrite the Dockerfile to use multi-stage builds and Alpine base images to shrink the image.
+
+parameters:
+  type: object
+  properties:
+    current_image_name:
+      type: string
+      description: Name of the current built image (for reference).
+  required: []
+
+activity:
+  name: optimize_image_activity
+  timeout_seconds: 90
+  retry_policy:
+    max_attempts: 3
+    initial_interval_seconds: 2

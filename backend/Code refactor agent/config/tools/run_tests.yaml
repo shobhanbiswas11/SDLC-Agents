@@ -1,0 +1,19 @@
+name: run_tests
+description: >
+  Run tests for a refactored source file. Searches for a dedicated test file
+  automatically. If no test file is found, falls back to a syntax check on the
+  source file. Always set source_file to the exact file path used in apply_refactor.
+
+parameters:
+  type: object
+  properties:
+    test_command:
+      type: string
+      description: Test command to run (e.g. pytest, npm test). Defaults to pytest.
+    test_path:
+      type: string
+      description: Optional explicit path to the test file or directory to run.
+    source_file:
+      type: string
+      description: Path to the source file that was refactored. Used to auto-discover the matching test file.
+  required: []

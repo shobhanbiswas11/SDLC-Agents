@@ -1,0 +1,24 @@
+# Analyze Project Tool
+# Uses AI to detect the tech stack from the file listing and key file contents.
+
+name: analyze_project
+description: Use AI to analyse the project's tech stack from the file listing and key file contents.
+
+parameters:
+  type: object
+  properties:
+    file_listing:
+      type: string
+      description: Output of list_files.
+    key_files_content:
+      type: string
+      description: Concatenated content of key files (package.json, requirements.txt, etc.).
+  required:
+    - file_listing
+
+activity:
+  name: analyze_project_activity
+  timeout_seconds: 90
+  retry_policy:
+    max_attempts: 3
+    initial_interval_seconds: 2

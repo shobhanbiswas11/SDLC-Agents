@@ -2545,8 +2545,8 @@ import TerminalIcon from "@mui/icons-material/Terminal";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 
-const DOC_API_BASE = process.env.NEXT_PUBLIC_DOC_FIRST_API_BASE_URL || "http://localhost:18100";
-const SIMPLE_API_BASE = process.env.NEXT_PUBLIC_DOC_SIMPLE_API_BASE_URL || "http://localhost:18101";
+const SIMPLE_API_BASE =  "http://localhost:8002";
+const DOC_API_BASE = SIMPLE_API_BASE; // Unified API backend
 
 /* ─── SLEEK SAAS DESIGN TOKENS ───────────────────────────────────────────── */
 export const getColors = (tMode: 'light' | 'dark') => ({
@@ -2803,6 +2803,7 @@ export default function DocuGenius() {
   const [committing, setCommitting] = useState(false);
   const [snackOpen, setSnackOpen] = useState(false);
   const [appTab, setAppTab] = useState("readme");
+  const [selectedTool, setSelectedTool] = useState("generate_readme");
 
   // -- Code Chat Tab State (Legacy 1st Agent) --
   const [chatMessages, setChatMessages] = useState<{ role: string; text: string; contextFiles?: string[] }[]>([]);
@@ -3111,32 +3112,81 @@ export default function DocuGenius() {
     setLoading(true); setError(""); setSuccess(false); setCommitReady(false);
     setReadmeUrl(""); setGeneratedMarkdown(""); setSteps(makeSteps()); setShowRight(true);
     const finalInstructions = overrideInstructions !== null ? overrideInstructions : customInstructions;
-    try {
-      const payload = mode === "github"
-        ? { repo, access_token: token, branch: "main", commit_message: "Update README", custom_instructions: finalInstructions, sections: [], target_audience: targetAudience, auto_commit: autoGenerate }
-        : { local_path: localPath, repo: "", access_token: "", branch: "main", custom_instructions: finalInstructions, sections: [], target_audience: targetAudience, auto_commit: autoGenerate };
-      const res = await fetch(`${DOC_API_BASE}/stream-readme`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (!res.ok) { let d; try { d = await res.json(); } catch (_) { } throw new Error(d?.detail || res.statusText); }
-      if (!res.body) throw new Error("No response body");
-      const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
-      while (true) {
-        const { value, done } = await reader.read(); if (done) break;
-        buffer += decoder.decode(value, { stream: true }); const parts = buffer.split("\n\n"); buffer = parts.pop() || "";
-        for (const part of parts) {
-          if (!part.startsWith("data: ")) continue;
-          try {
-            const data = JSON.parse(part.slice(6));
-            if (data.step === "error") { setError(data.message); setSteps(prev => prev.map(s => s.status === "running" ? { ...s, status: "error", message: data.message } : s)); break; }
-            if (data.step && data.step !== "done") updateStep(data.step, { status: data.status, message: data.message });
-            if (data.step === "generating" && data.chunk) setGeneratedMarkdown(prev => prev + data.chunk);
-            if (data.step === "done") {
-              if (data.file_url) { setSuccess(true); setReadmeUrl(data.file_url); setConfettiActive(true); setTimeout(() => setConfettiActive(false), 5000); }
-              else setCommitReady(true);
+    
+    // For original README streaming endpoint from 1st agent
+    if (selectedTool === "generate_readme") {
+        try {
+          const payload = mode === "github"
+            // Force auto_commit false to prevent automatic push before user review
+            ? { repo, access_token: token, branch: "main", commit_message: "Update README", custom_instructions: finalInstructions, sections: [], target_audience: targetAudience, auto_commit: false }
+            : { local_path: localPath, repo: "", access_token: "", branch: "main", custom_instructions: finalInstructions, sections: [], target_audience: targetAudience, auto_commit: false };
+          const res = await fetch(`${DOC_API_BASE}/stream-readme`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+          if (!res.ok) { let d; try { d = await res.json(); } catch (_) { } throw new Error(d?.detail || res.statusText); }
+          if (!res.body) throw new Error("No response body");
+          const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
+          while (true) {
+            const { value, done } = await reader.read(); if (done) break;
+            buffer += decoder.decode(value, { stream: true }); const parts = buffer.split("\n\n"); buffer = parts.pop() || "";
+            for (const part of parts) {
+              if (!part.startsWith("data: ")) continue;
+              try {
+                const data = JSON.parse(part.slice(6));
+                if (data.step === "error") { setError(data.message); setSteps(prev => prev.map(s => s.status === "running" ? { ...s, status: "error", message: data.message } : s)); break; }
+                if (data.step && data.step !== "done") updateStep(data.step, { status: data.status, message: data.message });
+                if (data.step === "generating" && data.chunk) setGeneratedMarkdown(prev => prev + data.chunk);
+                if (data.step === "done") {
+                  if (data.file_url) { setSuccess(true); setReadmeUrl(data.file_url); setConfettiActive(true); setTimeout(() => setConfettiActive(false), 5000); }
+                  else setCommitReady(true);
+                }
+              } catch (_) { }
             }
-          } catch (_) { }
-        }
-      }
-    } catch (err: any) { setError(err.message || "An error occurred"); } finally { setLoading(false); }
+          }
+        } catch (err: any) { setError(err.message || "An error occurred"); } finally { setLoading(false); }
+    } else {
+        // Use the Temporal Agent for new documentation tools
+        try {
+            const workspacePath = mode === "local" ? localPath : ".";
+            const res = await fetch(`${SIMPLE_API_BASE}/api/workflows`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ agent_id: "reviewer", workspace_path: workspacePath })
+            });
+            if (!res.ok) throw new Error("Failed to start workflow");
+            const data = await res.json();
+            const wId = data.workflow_id;
+            
+            const prompt = mode === "github" 
+                ? `GitHub repo context: ${repo}\nToken: ${token}\nUser Request: Please invoke the ${selectedTool} tool. Custom Instructions: ${finalInstructions}`
+                : `User Request: Please invoke the ${selectedTool} tool to process the local repository at ${localPath}. Custom Instructions: ${finalInstructions}`;
+            
+            const preStatusRes = await fetch(`${SIMPLE_API_BASE}/api/workflows/${wId}/status`);
+            const preStatusData = await preStatusRes.json();
+            const initialCount = preStatusData.status?.message_count || 0;
+
+            const resMsg = await fetch(`${SIMPLE_API_BASE}/api/workflows/${wId}/messages`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: prompt })
+            });
+            if (!resMsg.ok) throw new Error("Failed to execute tool");
+            
+            updateStep("generating", { status: "running", message: "AI processing document via Temporal..." });
+            
+            const poll = setInterval(async () => {
+                try {
+                const statusRes = await fetch(`${SIMPLE_API_BASE}/api/workflows/${wId}/status`);
+                const statusData = await statusRes.json();
+                const currentCount = statusData.status?.message_count || 0;
+                if (currentCount >= initialCount + 2 && statusData.status.last_response) {
+                    setGeneratedMarkdown(statusData.status.last_response);
+                    updateStep("generating", { status: "done", message: "Completed!" });
+                    setCommitReady(true);
+                    setLoading(false);
+                    clearInterval(poll);
+                    fetch(`${SIMPLE_API_BASE}/api/workflows/${wId}`, { method: "DELETE" }); // Cleanup
+                }
+                } catch (e) { console.error(e); }
+            }, 1000);
+        } catch (err: any) { setError(err.message || "An error occurred"); setLoading(false); }
+    }
   };
 
   /* ── Refine & Commit ── */
@@ -3268,7 +3318,7 @@ export default function DocuGenius() {
           <Box sx={{ display: "flex", justifyContent: "center", mb: 4 }}>
             <Box sx={{ display: "inline-flex", p: "4px", background: themeMode === 'dark' ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.05)", backdropFilter: "blur(12px)", border: `1px solid ${C.border}`, borderRadius: "12px" }}>
               {[
-                { id: "readme", Icon: DocumentIcon, label: "Generator" },
+                { id: "readme", Icon: DocumentIcon, label: "Docs Generators" },
                 { id: "chat", Icon: ChatIcon, label: "Code Chat" },
                 { id: "operations", Icon: TerminalIcon, label: "Agent Operations" },
               ].map(tab => (
@@ -3556,6 +3606,24 @@ export default function DocuGenius() {
 
                       <Divider sx={{ mb: 4 }} />
 
+                      <SectionLabel>Generator Type</SectionLabel>
+                      <FormControl fullWidth size="small" sx={{ mb: 3 }}>
+                        <InputLabel sx={{ fontSize: 13, color: C.text2 }}>Select Tool</InputLabel>
+                        <Select value={selectedTool} label="Select Tool" onChange={e => setSelectedTool(e.target.value)} disabled={loading}>
+                          <MenuItem value="generate_readme">Generate README</MenuItem>
+                          <MenuItem value="generate_api_docs">Generate API Docs</MenuItem>
+                          <MenuItem value="expand_code_comments">Expand Code Comments</MenuItem>
+                          <MenuItem value="explain_folder_structure">Explain Folder Structure</MenuItem>
+                          <MenuItem value="describe_architecture">Describe Architecture</MenuItem>
+                          <MenuItem value="summarize_codebase">Summarize Codebase</MenuItem>
+                          <MenuItem value="document_databases">Document Databases</MenuItem>
+                          <MenuItem value="generate_diagrams">Generate Diagrams</MenuItem>
+                          <MenuItem value="improve_documentation">Improve Documentation</MenuItem>
+                        </Select>
+                      </FormControl>
+                      
+                      <Divider sx={{ mb: 4 }} />
+
                       <SectionLabel>Generation Settings</SectionLabel>
                       <FormControl fullWidth size="small" sx={{ mb: 3 }}>
                         <InputLabel sx={{ fontSize: 13, color: C.text2 }}>Target Audience</InputLabel>
@@ -3588,7 +3656,7 @@ export default function DocuGenius() {
                             <CircularProgress size={16} sx={{ color: C.text }} />
                             <span>Processing Codebase...</span>
                           </Stack>
-                        ) : "Generate Documentation"}
+                        ) : selectedTool === 'generate_readme' ? "Generate README" : "Generate"}
                       </Button>
                     </Box>
                   </Card>

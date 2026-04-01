@@ -69,6 +69,7 @@ class AgentWorkflow:
         # Path to the workspace directory
         self._workspace_path: str = "."
         self._should_exit: bool = False
+        self._context_gathered: bool = False
 
     # ── Temporal Signals (push data INTO the workflow) ──────────────────────
 
@@ -166,8 +167,40 @@ class AgentWorkflow:
         # Add the user's message to the conversation
         self._history.append({"role": "user", "content": user_message})
 
-        max_steps = 10  # Prevent infinite loops
+        # Inject RAG context on the FIRST message processing
+        if getattr(self, "_context_gathered", False) is False:
+            self._status = "gathering_context"
+            context_data = await workflow.execute_activity(
+                "gather_context",
+                args=[self._workspace_path, user_message],
+                start_to_close_timeout=timedelta(seconds=180),
+            )
+            # Inject context silently right after original SYSTEM_PROMPT 
+            self._history.insert(1, {"role": "system", "content": f"PRE-GATHERED RAG CONTEXT:\n{context_data}"})
+            self._context_gathered = True
+            self._status = "thinking"
 
+        # ── SLIDING WINDOW TECHNIQUE ──
+        # Keep system messages safely at the top (they contain the massive codebase RAG scan).
+        # Only retain the most recent ~20 conversational turns to avoid token limit crashes.
+        system_msgs = [msg for msg in self._history if msg.get("role") == "system"]
+        other_msgs = [msg for msg in self._history if msg.get("role") != "system"]
+        
+        MAX_RECENT_MESSAGES = 20
+        if len(other_msgs) > MAX_RECENT_MESSAGES:
+            # We must avoid cutting inside an OpenAI tool-call sequence (which causes API validation crashes).
+            # The safest place to start an LLM history chunk is on a "user" message.
+            slice_idx = len(other_msgs) - MAX_RECENT_MESSAGES
+            
+            # Scan forward to find the next "user" message so we don't orphan a "tool" message
+            while slice_idx < len(other_msgs) and other_msgs[slice_idx].get("role") != "user":
+                slice_idx += 1
+                
+            if slice_idx == len(other_msgs):
+                slice_idx = len(other_msgs) - MAX_RECENT_MESSAGES  # Fallback
+                
+            self._history = system_msgs + other_msgs[slice_idx:]
+        max_steps = 10  # Prevent infinite loops
         for _ in range(max_steps):
             # ── Step 1: Ask the LLM ──────────────────────────────────────────
             # We run the LLM call as a Temporal Activity (outside the workflow sandbox)

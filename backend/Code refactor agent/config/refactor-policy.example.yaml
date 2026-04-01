@@ -1,0 +1,22 @@
+semantic_guard:
+  enabled: true
+ 
+  protect_storage_keys: true
+  protect_env_keys: true
+  protect_routes: true
+  protect_imports: true
+ 
+  # Block refactoring entirely for these paths (glob patterns, repo-relative)
+  protected_file_globs:
+    - "auth/**"
+    - "**/migrations/**"
+ 
+  # These literals must remain present (if originally present)
+  protected_string_literals:
+    - "user_access_token"
+    - "doctor_access_token"
+ 
+  # Regex counts must not change (useful for env keys / route prefixes / event names)
+  protected_regex_patterns:
+    - "process\\.env\\.[A-Z0-9_]+"
+    - "localStorage\\.(getItem|setItem|removeItem)\\("

@@ -1,0 +1,21 @@
+# Podman / Docker Build Tool
+# Builds a container image from the workspace Dockerfile.
+
+name: podman_build
+description: Build a container image from the workspace Dockerfile. Streams build output to the terminal.
+
+parameters:
+  type: object
+  properties:
+    image_name:
+      type: string
+      description: "Name[:tag] for the resulting image."
+  required:
+    - image_name
+
+activity:
+  name: podman_build_activity
+  timeout_seconds: 600
+  retry_policy:
+    max_attempts: 1
+    initial_interval_seconds: 1

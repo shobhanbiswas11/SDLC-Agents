@@ -1,0 +1,24 @@
+# Health Check Tool
+# Polls a TCP port until the application responds or the timeout expires.
+
+name: health_check
+description: Poll a TCP port until the application responds or the timeout expires.
+
+parameters:
+  type: object
+  properties:
+    port:
+      type: integer
+      description: TCP port to check.
+    timeout:
+      type: integer
+      description: Max seconds to wait (default 30).
+  required:
+    - port
+
+activity:
+  name: health_check_activity
+  timeout_seconds: 120
+  retry_policy:
+    max_attempts: 1
+    initial_interval_seconds: 1

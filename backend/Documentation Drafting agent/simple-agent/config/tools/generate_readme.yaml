@@ -1,0 +1,18 @@
+name: generate_readme
+description: Analyze the codebase at the given workspace path and generate a comprehensive README.md. Returns the markdown content.
+
+parameters:
+  type: object
+  properties:
+    workspace_path:
+      type: string
+      description: Path to the workspace/repository root.
+  required:
+    - workspace_path
+
+activity:
+  name: generate_readme_activity
+  timeout_seconds: 60
+  retry_policy:
+    max_attempts: 2
+    initial_interval_seconds: 1

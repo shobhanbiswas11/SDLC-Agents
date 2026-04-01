@@ -1,0 +1,24 @@
+# Podman / Docker Logs Tool
+# Fetches logs from a running or stopped container.
+
+name: podman_logs
+description: Fetch logs from a running or stopped container.
+
+parameters:
+  type: object
+  properties:
+    container_id:
+      type: string
+      description: Container ID or name.
+    tail:
+      type: string
+      description: "Number of log lines to fetch (default '100')."
+  required:
+    - container_id
+
+activity:
+  name: podman_logs_activity
+  timeout_seconds: 30
+  retry_policy:
+    max_attempts: 2
+    initial_interval_seconds: 1

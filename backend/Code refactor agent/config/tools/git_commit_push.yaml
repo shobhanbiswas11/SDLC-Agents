@@ -1,0 +1,19 @@
+name: git_commit_push
+description: Create a git commit and push it to a remote branch from the current workspace. Use only after explicit user approval.
+ 
+parameters:
+  type: object
+  properties:
+    commit_message:
+      type: string
+      description: Commit message to use for git commit.
+    branch:
+      type: string
+      description: Branch name to push to. If omitted, uses current branch.
+    remote:
+      type: string
+      description: Remote name to push to. Defaults to origin.
+    auto_stage_all:
+      type: boolean
+      description: If true, stage all workspace changes with git add -A before commit.
+  required: []

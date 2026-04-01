@@ -1,0 +1,20 @@
+# List Files Tool
+# Recursively lists all files in a directory.
+
+name: list_files
+description: Recursively list all files in a directory (skips venv, node_modules, .git, etc.).
+
+parameters:
+  type: object
+  properties:
+    directory:
+      type: string
+      description: "Sub-directory to list (default: workspace root '.')."
+  required: []
+
+activity:
+  name: list_files_activity
+  timeout_seconds: 30
+  retry_policy:
+    max_attempts: 2
+    initial_interval_seconds: 1

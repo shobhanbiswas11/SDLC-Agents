@@ -1,0 +1,31 @@
+# Repair Build Tool (Atomic)
+# Fixes a broken file using the error log then immediately retries podman_build.
+
+name: repair_build
+description: >
+  Atomic repair-and-rebuild: fixes a broken file using the error log, then immediately
+  retries podman_build. Use this instead of calling repair_file + podman_build separately.
+
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: "File to repair (e.g. 'Dockerfile')."
+    error_log:
+      type: string
+      description: Error output from the previous failed build.
+    image_name:
+      type: string
+      description: Image name to rebuild after the repair.
+  required:
+    - file_path
+    - error_log
+    - image_name
+
+activity:
+  name: repair_build_activity
+  timeout_seconds: 700
+  retry_policy:
+    max_attempts: 1
+    initial_interval_seconds: 1

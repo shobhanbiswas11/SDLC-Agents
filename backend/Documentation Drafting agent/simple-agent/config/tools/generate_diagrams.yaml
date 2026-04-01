@@ -1,0 +1,22 @@
+name: generate_diagrams
+description: Create Mermaid diagram models (architecture, sequence, or class diagrams) based on analyzing specific system files. Returns Mermaid markdown.
+
+parameters:
+  type: object
+  properties:
+    target_path:
+      type: string
+      description: Point to a specific system file or folder you want to visualize.
+    diagram_type:
+      type: string
+      description: "Type of diagram (e.g. 'architecture', 'sequence', 'classdiagram')."
+  required:
+    - target_path
+    - diagram_type
+
+activity:
+  name: generate_diagrams_activity
+  timeout_seconds: 45
+  retry_policy:
+    max_attempts: 2
+    initial_interval_seconds: 1

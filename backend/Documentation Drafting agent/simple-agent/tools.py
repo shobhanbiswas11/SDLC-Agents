@@ -284,6 +284,215 @@ async def handle_delete_file(file_path: str, workspace_path: str = ".", **_) -> 
 
 
 # ──────────────────────────────────────────────
+# DOCUMENTATION DRAFTING TOOLS
+# ──────────────────────────────────────────────
+
+def _generate_docs_with_llm(system_msg: str, user_msg: str) -> str:
+    """Call Azure OpenAI to generate documentation generically."""
+    from openai import AzureOpenAI
+    from azure.identity import ClientSecretCredential
+
+    tenant_id = os.getenv("AZURE_TENANT_ID", "")
+    client_id = os.getenv("AZURE_CLIENT_ID", "")
+    client_secret = os.getenv("AZURE_CLIENT_SECRET", "")
+    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+    deployment = os.getenv("AZURE_OPENAI_CHATGPT_DEPLOYMENT") or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
+    api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
+
+    if tenant_id and client_id and client_secret:
+        cred = ClientSecretCredential(tenant_id, client_id, client_secret)
+        token_obj = cred.get_token("https://cognitiveservices.azure.com/.default")
+        client = AzureOpenAI(azure_endpoint=endpoint, api_version=api_version, api_key=token_obj.token)
+    else:
+        client = AzureOpenAI(azure_endpoint=endpoint, api_version=api_version, api_key=os.getenv("AZURE_OPENAI_API_KEY", ""))
+
+    response = client.chat.completions.create(model=deployment, messages=[
+        {"role": "system", "content": system_msg},
+        {"role": "user", "content": user_msg}
+    ])
+    return response.choices[0].message.content or ""
+
+
+def _get_folder_tree_string(folder_path: Path, max_depth: int = 3, current_depth: int = 0) -> str:
+    """Helper to get a text representation of a directory tree."""
+    if current_depth > max_depth or not folder_path.is_dir():
+        return ""
+    tree = []
+    try:
+        for p in folder_path.iterdir():
+            if p.name.startswith(".") or "node_modules" in p.name or "__pycache__" in p.name or "venv" in p.name.lower():
+                continue
+            indent = "  " * current_depth
+            if p.is_dir():
+                tree.append(f"{indent}📂 {p.name}/")
+                tree.append(_get_folder_tree_string(p, max_depth, current_depth + 1))
+            else:
+                tree.append(f"{indent}📄 {p.name}")
+    except PermissionError:
+        pass
+    return "\n".join(filter(bool, tree))
+
+
+async def handle_generate_readme(workspace_path: str = ".", **_) -> dict:
+    wspath = Path(workspace_path)
+    tree = _get_folder_tree_string(wspath, max_depth=2)
+    
+    # Try to grab some metadata from common package files
+    context_files = []
+    for f in ["package.json", "pyproject.toml", "requirements.txt", "Cargo.toml", "go.mod"]:
+        p = wspath / f
+        if p.exists():
+            context_files.append(f"--- {f} ---\n{p.read_text(encoding='utf-8')[:1000]}")
+            
+    system_msg = "You are an expert technical writer. Generate a comprehensive, professional README.md for this project based on its structure and metadata. Output ONLY markdown."
+    user_msg = f"Project tree:\n{tree}\n\nMetadata:\n{chr(10).join(context_files)}"
+    
+    res = _generate_docs_with_llm(system_msg, user_msg)
+    return {"status": "success", "content": res}
+
+
+async def handle_generate_api_docs(target_path: str, workspace_path: str = ".", **_) -> dict:
+    path = Path(target_path) if Path(target_path).is_absolute() else Path(workspace_path) / target_path
+    if not path.exists():
+        return {"status": "error", "error": f"Path not found: {path}"}
+        
+    code_text = ""
+    if path.is_file():
+        code_text = path.read_text(encoding="utf-8")
+    else:
+        for p in list(path.rglob("*.py")) + list(path.rglob("*.ts")) + list(path.rglob("*.js")):
+            if "node_modules" not in str(p):
+                code_text += f"\n--- {p.name} ---\n{p.read_text(encoding='utf-8')[:2000]}"
+                if len(code_text) > 30000: break
+                
+    system_msg = "You are an expert API documenter. Read the code and output detailed API documentation in Markdown format (endpoints, functions, parameters, return types)."
+    user_msg = f"Code context:\n{code_text}"
+    
+    res = _generate_docs_with_llm(system_msg, user_msg)
+    return {"status": "success", "content": res}
+
+
+async def handle_expand_code_comments(file_path: str, workspace_path: str = ".", **_) -> dict:
+    path = Path(file_path) if Path(file_path).is_absolute() else Path(workspace_path) / file_path
+    if not path.exists():
+        return {"status": "error", "error": f"File not found: {path}"}
+        
+    code = path.read_text(encoding="utf-8")
+    system_msg = "You are a code documentation engine. Add highly descriptive inline comments and docstrings to the code. Return ONLY the modified code, no markdown wrappers."
+    
+    res = _generate_docs_with_llm(system_msg, f"Add code comments to this file:\n\n{code}")
+    return {"status": "success", "content": res}
+
+
+async def handle_explain_folder_structure(folder_path: str, workspace_path: str = ".", **_) -> dict:
+    path = Path(folder_path) if Path(folder_path).is_absolute() else Path(workspace_path) / folder_path
+    if not path.exists() or not path.is_dir():
+        return {"status": "error", "error": f"Folder not found or not a directory: {path}"}
+        
+    tree = _get_folder_tree_string(path, max_depth=3)
+    system_msg = "You are a senior developer. Explain the following folder structure. For each directory, briefly define what it likely contains based on standard software patterns."
+    
+    res = _generate_docs_with_llm(system_msg, f"Folder structure:\n{tree}")
+    return {"status": "success", "content": res}
+
+
+async def handle_describe_architecture(workspace_path: str = ".", **_) -> dict:
+    wspath = Path(workspace_path)
+    
+    import sys
+    sys.path.append(str(Path(__file__).parent))
+    from parsers.tree_fetcher import fetch_local_repo
+    from parsers.ast_graph_builder import build_combined_graph
+
+    try:
+        file_map, file_tree = fetch_local_repo(str(wspath))
+        graph = build_combined_graph(file_map)
+        tree_str = "\n".join(file_tree[:100])
+        edges = [f"{src} -> {dst}" for src, dests in graph.items() for dst in dests[:10]]
+        graph_str = "Import Dependencies:\n" + "\n".join(edges[:300])
+    except Exception as e:
+        print(f"Warning: Failed to fetch RAG context for diagram: {e}")
+        tree_str = _get_folder_tree_string(wspath, max_depth=3)
+        graph_str = "No dependency graph available."
+
+    system_msg = "You are a software architect. Analyze the folder structure and import graph to infer the project's high-level architecture. Provide a concise architectural overview in Markdown. You MUST also include a valid Mermaid.js graph visualization block (```mermaid ... ```) representing the architecture."
+    res = _generate_docs_with_llm(system_msg, f"Project root structure:\n{tree_str}\n\n{graph_str}")
+    return {"status": "success", "content": res}
+
+
+async def handle_summarize_codebase(workspace_path: str = ".", **_) -> dict:
+    wspath = Path(workspace_path)
+    
+    import sys
+    sys.path.append(str(Path(__file__).parent))
+    from parsers.tree_fetcher import fetch_local_repo
+    from parsers.metadata_extractor import extract_all_metadata, format_metadata_block
+
+    try:
+        file_map, file_tree = fetch_local_repo(str(wspath))
+        metadata = extract_all_metadata(file_map)
+        metadata_block = format_metadata_block(metadata)
+        tree_str = "\n".join(file_tree[:150])
+    except Exception as e:
+        print(f"Warning: Failed to fetch RAG context for summary: {e}")
+        tree_str = _get_folder_tree_string(wspath, max_depth=3)
+        metadata_block = "No deeper metadata available."
+
+    system_msg = "You are a senior engineering manager. Provide a high-level summary of the entire codebase based on its structure and extracted metadata (imports, functions, APIs). Highlight the tech stack, main components, and likely purpose."
+    res = _generate_docs_with_llm(system_msg, f"Project tree:\n{tree_str}\n\nMetadata Insights:\n{metadata_block}")
+    return {"status": "success", "content": res}
+
+
+async def handle_document_databases(schema_file_path: str, workspace_path: str = ".", **_) -> dict:
+    path = Path(schema_file_path) if Path(schema_file_path).is_absolute() else Path(workspace_path) / schema_file_path
+    if not path.exists():
+        return {"status": "error", "error": f"Schema file not found: {path}"}
+        
+    schema = path.read_text(encoding="utf-8")
+    system_msg = "You are a database administrator. Analyze the database schema and output a formatted Data Dictionary in Markdown, documenting tables, columns, relations, and primary/foreign keys."
+    res = _generate_docs_with_llm(system_msg, f"Database schema:\n{schema}")
+    return {"status": "success", "content": res}
+
+
+async def handle_generate_diagrams(target_path: str, diagram_type: str, workspace_path: str = ".", **_) -> dict:
+    path = Path(target_path) if Path(target_path).is_absolute() else Path(workspace_path) / target_path
+    if not path.exists():
+        return {"status": "error", "error": f"Path not found: {path}"}
+        
+    code = ""
+    if path.is_file():
+        code = path.read_text(encoding="utf-8")[:5000]
+    else:
+        import sys
+        sys.path.append(str(Path(__file__).parent))
+        from parsers.tree_fetcher import fetch_local_repo
+        from parsers.ast_graph_builder import build_combined_graph
+        try:
+            file_map, file_tree = fetch_local_repo(str(path))
+            graph = build_combined_graph(file_map)
+            edges = [f"{src} -> {dst}" for src, dests in graph.items() for dst in dests[:10]]
+            code = f"Folder structure:\n{chr(10).join(file_tree[:100])}\n\nDependencies:\n{chr(10).join(edges[:300])}"
+        except Exception:
+            code = _get_folder_tree_string(path, max_depth=2)
+            
+    system_msg = "You are a system architect. Generate ONLY a valid Mermaid.js diagram block for the requested diagram type. Use the structural dependencies provided to route the diagram. Do not include markdown code block syntax (like ```mermaid), just the raw mermaid code starting with 'graph', 'sequenceDiagram', etc."
+    user_msg = f"Diagram Type: {diagram_type}\n\nContext:\n{code}"
+    res = _generate_docs_with_llm(system_msg, user_msg)
+    return {"status": "success", "content": res}
+
+
+async def handle_improve_documentation(file_path: str, workspace_path: str = ".", **_) -> dict:
+    path = Path(file_path) if Path(file_path).is_absolute() else Path(workspace_path) / file_path
+    if not path.exists():
+        return {"status": "error", "error": f"File not found: {path}"}
+        
+    doc = path.read_text(encoding="utf-8")
+    system_msg = "You are an expert technical editor. Improve the following markdown documentation. Make it clearer, more professional, and fix any grammar issues. Return ONLY the improved markdown."
+    res = _generate_docs_with_llm(system_msg, f"Original Documentation:\n\n{doc}")
+    return {"status": "success", "content": res}
+
+
+# ──────────────────────────────────────────────
 # TOOL DISPATCH TABLE
 # Maps tool name (as defined in YAML filenames) -> handler function
 # IMPORTANT: these keys must match the 'name:' field in each config/tools/*.yaml file
@@ -297,4 +506,13 @@ TOOL_HANDLERS = {
     "delete_file": handle_delete_file,                      # config/tools/delete_file.yaml
     "list_files": handle_list_files,                        # config/tools/list_files.yaml
     "ask_user": handle_ask_user,                            # config/tools/ask_user.yaml
+    "generate_readme": handle_generate_readme,
+    "generate_api_docs": handle_generate_api_docs,
+    "expand_code_comments": handle_expand_code_comments,
+    "explain_folder_structure": handle_explain_folder_structure,
+    "describe_architecture": handle_describe_architecture,
+    "summarize_codebase": handle_summarize_codebase,
+    "document_databases": handle_document_databases,
+    "generate_diagrams": handle_generate_diagrams,
+    "improve_documentation": handle_improve_documentation,
 }

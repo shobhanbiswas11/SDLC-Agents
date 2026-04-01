@@ -1,0 +1,18 @@
+name: explain_folder_structure
+description: Analyze a target folder, map its structure recursively, and define the purpose of each directory and critical file.
+
+parameters:
+  type: object
+  properties:
+    folder_path:
+      type: string
+      description: Path to the directory you want to explain.
+  required:
+    - folder_path
+
+activity:
+  name: explain_folder_structure_activity
+  timeout_seconds: 45
+  retry_policy:
+    max_attempts: 2
+    initial_interval_seconds: 1
