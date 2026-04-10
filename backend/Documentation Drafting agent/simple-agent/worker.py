@@ -11,6 +11,7 @@ That's all this file does. Nothing complex.
 
 import asyncio
 import os
+import concurrent.futures
 from dotenv import load_dotenv
 from temporalio.client import Client
 from temporalio.worker import Worker
@@ -54,15 +55,18 @@ async def main():
         connect_kwargs["api_key"] = TEMPORAL_API_KEY.strip()
     client = await Client.connect(TEMPORAL_ADDRESS, **connect_kwargs)
 
-    # Start the worker — it will run until you press Ctrl+C
-    async with Worker(
-        client,
-        task_queue=TASK_QUEUE,
-        workflows=[AgentWorkflow],       # Register our workflow class
-        activities=[llm_call, run_tool, gather_context],  # Register our activity functions
-    ):
-        print("✅ Worker is running. Press Ctrl+C to stop.\n")
-        await asyncio.Event().wait()  # Block forever
+    # We need a thread pool executor because some of our activities (llm_call, gather_context) are synchronous
+    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as activity_executor:
+        # Start the worker — it will run until you press Ctrl+C
+        async with Worker(
+            client,
+            task_queue=TASK_QUEUE,
+            workflows=[AgentWorkflow],       # Register our workflow class
+            activities=[llm_call, run_tool, gather_context],  # Register our activity functions
+            activity_executor=activity_executor, # Provide thread pool to run synchronous activities
+        ):
+            print("✅ Worker is running. Press Ctrl+C to stop.\n")
+            await asyncio.Event().wait()  # Block forever
 
 
 if __name__ == "__main__":

@@ -9,11 +9,12 @@ description: |
   - 'list': list the contents of a directory in the repository.
   - 'summarize': read the file and provide a summary of its contents based on the given prompt.
   - 'update': modify the file according to instructions in the prompt.
-  - 'add': add inline comments to the file.
+  - 'comment': add inline comments to the file.
   - 'remove': strip all existing comments.
+  - 'create': Create a completely new file on Github. Pass the full file contents into the `prompt`.
   Supports reading from local workspace OR directly from a GitHub repository.
-  Writes the file back and auto-pushes to GitHub (if source is github) for actions: add, remove, update.
-  Use this when asked to "list files", "read a file", "summarize code", "comment a file", "document code", "remove comments", or "update/fix code".
+  Writes the file back and auto-pushes to GitHub (if source is github) for actions: comment, remove, update, create.
+  Use this when asked to "list files", "read a file", "summarize code", "comment a file", "document code", "remove comments", "create a file", or "update/fix code".
 
 parameters:
   type: object
@@ -27,7 +28,7 @@ parameters:
     action:
       type: string
       description: "The operation to perform on the file or directory."
-      enum: [add, remove, read, summarize, update, list]
+      enum: [comment, remove, read, summarize, update, list, create]
       default: read
     prompt:
       type: string
@@ -40,7 +41,7 @@ parameters:
       default: local
     github_repo:
       type: string
-      description: GitHub repository in "owner/repo" format (e.g. "ArifRahaman/JU-Srijan"). Required when source="github".
+      description: GitHub repository in "owner/repo" format. Required when source="github".
       default: ""
     github_token:
       type: string

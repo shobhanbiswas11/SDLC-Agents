@@ -1,9 +1,0 @@
-fastapi
-uvicorn[standard]
-temporalio
-openai
-azure-identity
-aiohttp
-python-dotenv
-pyyaml
-esprima

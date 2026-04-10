@@ -19,6 +19,9 @@ import os
 import base64
 import aiohttp
 from pathlib import Path
+import tempfile
+import subprocess
+import shutil
 
 
 # ──────────────────────────────────────────────
@@ -102,13 +105,15 @@ async def _fetch_github_file(repo: str, file_path: str, token: str) -> tuple[str
     return None, None
 
 
-async def _push_github_file(repo: str, file_path: str, content: str, sha: str, token: str) -> bool:
+async def _push_github_file(repo: str, file_path: str, content: str, sha: str | None, token: str) -> bool:
     """Commit updated file content back to GitHub."""
     payload = {
         "message": "docs: 🤖 Auto-edited via Simple Agent",
-        "content": base64.b64encode(content.encode()).decode(),
-        "sha": sha
+        "content": base64.b64encode(content.encode()).decode()
     }
+    if sha:
+        payload["sha"] = sha
+        
     async with aiohttp.ClientSession() as session:
         url = f"https://api.github.com/repos/{repo}/contents/{file_path.lstrip('/')}"
         async with session.put(url, headers=_github_headers(token), json=payload) as r:
@@ -137,9 +142,15 @@ def _call_llm_for_comments(code: str, file_path: str, action: str, prompt: str) 
     else:
         client = AzureOpenAI(azure_endpoint=endpoint, api_version=api_version, api_key=os.getenv("AZURE_OPENAI_API_KEY", ""))
 
-    if action == "add":
-        system_msg = "You are a code documentation expert. Add clear, concise inline comments to every function, class, and complex logic block. Return ONLY the commented code — no markdown fences."
-        user_msg = f"Add helpful inline comments to this {Path(file_path).suffix} file:\n\n{code}"
+    is_md = file_path.lower().endswith(".md")
+    
+    if action == "comment":
+        if is_md:
+            system_msg = "You are a technical document editor. Improve the formatting, structure, and clarity of the markdown file. DO NOT include markdown fences (like ```markdown), and NEVER output conversational filler or refusals. Return ONLY the final raw markdown content."
+            user_msg = f"Improve this Markdown file:\n\n{code}"
+        else:
+            system_msg = "You are a code documentation expert. Add clear, concise inline comments to every function, class, and complex logic block. Return ONLY the commented code — no markdown fences."
+            user_msg = f"Add helpful inline comments to this {Path(file_path).suffix} file:\n\n{code}"
     elif action == "remove":
         system_msg = "You are a code cleanup tool. Remove ALL comments from the code. Return ONLY the clean code."
         user_msg = f"Remove all comments from this file:\n\n{code}"
@@ -147,8 +158,11 @@ def _call_llm_for_comments(code: str, file_path: str, action: str, prompt: str) 
         system_msg = "You are a code review assistant. Provide a clear, structured summary of what this code does. NEVER use markdown code blocks (triple backticks) in your response."
         user_msg = f"{prompt or 'Summarize this file:'}\n\n{code}"
     elif action == "update":
-        system_msg = "You are a code editing assistant. Apply the requested changes. Return ONLY the modified code."
-        user_msg = f"Instructions: {prompt}\n\nCode:\n{code}"
+        if is_md:
+            system_msg = "You are a documentation editing assistant. Apply the requested changes to the markdown. Return ONLY the modified raw markdown without any markdown fences (like ```markdown), and absolutely NO conversational filler."
+        else:
+            system_msg = "You are a code editing assistant. Apply the requested changes. Return ONLY the modified code."
+        user_msg = f"Instructions: {prompt}\n\nContent:\n{code}"
     else:
         return code
 
@@ -190,20 +204,25 @@ async def handle_github_inline_comment(
             matched = [item["path"] for item in tree if file_path.lower() in item["path"].lower()]
             return {"status": "success", "files": matched[:30], "message": f"Found {len(matched)} items matching '{file_path}':\n" + "\n".join(f"- {p}" for p in matched[:30])}
 
-        # Resolve and fetch the file
-        resolved = await _resolve_file_path(repo, file_path, token)
         if not resolved:
-            return {"status": "error", "error": f"Could not find '{file_path}' in repo '{repo}'. Try action='list' to browse."}
-
-        raw_code, sha = await _fetch_github_file(repo, resolved, token)
-        if raw_code is None:
-            return {"status": "error", "error": f"Failed to fetch '{resolved}' from GitHub."}
+            if action == "create":
+                resolved = file_path
+                sha = None
+                raw_code = ""
+            else:
+                return {"status": "error", "error": f"Could not find '{file_path}' in repo '{repo}'. Try action='create' to make a new file."}
+        else:
+            raw_code, sha = await _fetch_github_file(repo, resolved, token)
+            if raw_code is None:
+                return {"status": "error", "error": f"Failed to fetch '{resolved}' from GitHub."}
 
         if action == "read":
             return {"status": "success", "file_path": resolved, "content": raw_code}
 
-        # add/remove/summarize/update — call the LLM
-        result_text = _call_llm_for_comments(raw_code, resolved, action, prompt)
+        if action == "create":
+            result_text = prompt  # create action just uses prompt as exact file content
+        else:
+            result_text = _call_llm_for_comments(raw_code, resolved, action, prompt)
 
         if action == "summarize":
             return {"status": "success", "file_path": resolved, "summary": result_text}
@@ -407,9 +426,9 @@ async def handle_describe_architecture(workspace_path: str = ".", **_) -> dict:
     try:
         file_map, file_tree = fetch_local_repo(str(wspath))
         graph = build_combined_graph(file_map)
-        tree_str = "\n".join(file_tree[:100])
-        edges = [f"{src} -> {dst}" for src, dests in graph.items() for dst in dests[:10]]
-        graph_str = "Import Dependencies:\n" + "\n".join(edges[:300])
+        tree_str = "\n".join(file_tree[:500])
+        edges = [f"{src} -> {dst}" for src, dests in graph.items() for dst in list(dests)[:20]]
+        graph_str = "Import Dependencies:\n" + "\n".join(edges[:2000])
     except Exception as e:
         print(f"Warning: Failed to fetch RAG context for diagram: {e}")
         tree_str = _get_folder_tree_string(wspath, max_depth=3)
@@ -432,7 +451,7 @@ async def handle_summarize_codebase(workspace_path: str = ".", **_) -> dict:
         file_map, file_tree = fetch_local_repo(str(wspath))
         metadata = extract_all_metadata(file_map)
         metadata_block = format_metadata_block(metadata)
-        tree_str = "\n".join(file_tree[:150])
+        tree_str = "\n".join(file_tree[:500])
     except Exception as e:
         print(f"Warning: Failed to fetch RAG context for summary: {e}")
         tree_str = _get_folder_tree_string(wspath, max_depth=3)
@@ -470,8 +489,8 @@ async def handle_generate_diagrams(target_path: str, diagram_type: str, workspac
         try:
             file_map, file_tree = fetch_local_repo(str(path))
             graph = build_combined_graph(file_map)
-            edges = [f"{src} -> {dst}" for src, dests in graph.items() for dst in dests[:10]]
-            code = f"Folder structure:\n{chr(10).join(file_tree[:100])}\n\nDependencies:\n{chr(10).join(edges[:300])}"
+            edges = [f"{src} -> {dst}" for src, dests in graph.items() for dst in list(dests)[:20]]
+            code = f"Folder structure:\n{chr(10).join(file_tree[:500])}\n\nDependencies:\n{chr(10).join(edges[:2000])}"
         except Exception:
             code = _get_folder_tree_string(path, max_depth=2)
             
@@ -491,6 +510,121 @@ async def handle_improve_documentation(file_path: str, workspace_path: str = "."
     res = _generate_docs_with_llm(system_msg, f"Original Documentation:\n\n{doc}")
     return {"status": "success", "content": res}
 
+
+# ──────────────────────────────────────────────
+# GIT SSH TOOLS
+# ──────────────────────────────────────────────
+
+async def handle_git_push_ssh(ssh_private_key: str, commit_message: str = "docs: update documentation", files_to_add: str = ".", github_repo_url: str = "", workspace_path: str = ".", **_) -> dict:
+    """Commit and push to a remote using an SSH private key."""
+    path = Path(workspace_path)
+    if not path.exists():
+        return {"status": "error", "error": f"Workspace not found: {path}"}
+        
+    if not shutil.which("git"):
+        return {"status": "error", "error": "git executable not found on the system."}
+
+    fd, key_path = tempfile.mkstemp(text=True)
+    try:
+        # Write the private key
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(ssh_private_key)
+            if not ssh_private_key.endswith('\n'):
+                f.write('\n')
+                
+        # Prepare environment for SSH
+        # Replace backslashes with forward slashes for OpenSSH on Windows
+        ssh_cmd = f'ssh -i "{key_path.replace(chr(92), "/")}" -o StrictHostKeyChecking=no'
+        env = os.environ.copy()
+        env["GIT_SSH_COMMAND"] = ssh_cmd
+        
+        def run_git(args: list[str]) -> subprocess.CompletedProcess:
+            return subprocess.run(["git"] + args, cwd=str(path), env=env, capture_output=True, text=True)
+
+        if github_repo_url:
+            res = run_git(["remote", "get-url", "origin"])
+            if res.returncode == 0:
+                run_git(["remote", "set-url", "origin", github_repo_url])
+            else:
+                run_git(["remote", "add", "origin", github_repo_url])
+                
+        add_res = run_git(["add", files_to_add])
+        if add_res.returncode != 0:
+            return {"status": "error", "error": f"Failed to git add: {add_res.stderr}"}
+            
+        commit_res = run_git(["commit", "-m", commit_message])
+        if commit_res.returncode != 0 and "nothing to commit" not in commit_res.stdout:
+            return {"status": "error", "error": f"Failed to git commit: {commit_res.stderr} {commit_res.stdout}"}
+            
+        branch_res = run_git(["branch", "--show-current"])
+        current_branch = branch_res.stdout.strip() or "main"
+        push_res = run_git(["push", "-u", "origin", current_branch])
+        if push_res.returncode != 0:
+            return {"status": "error", "error": f"Failed to git push: {push_res.stderr}"}
+            
+        return {"status": "success", "message": f"Successfully committed and pushed to origin/{current_branch} via SSH."}
+        
+    except Exception as e:
+        return {"status": "error", "error": f"Exception during git operations: {str(e)}"}
+    finally:
+        try:
+            os.remove(key_path)
+        except Exception:
+            pass
+
+async def handle_git_push_token(github_token: str, commit_message: str = "docs: update documentation", files_to_add: str = ".", workspace_path: str = ".", **_) -> dict:
+    """Commit and push to a remote using an HTTPS GitHub token."""
+    path = Path(workspace_path)
+    if not path.exists():
+        return {"status": "error", "error": f"Workspace not found: {path}"}
+        
+    if not shutil.which("git"):
+        return {"status": "error", "error": "git executable not found on the system."}
+
+    try:
+        def run_git(args: list[str], hide_error=False) -> subprocess.CompletedProcess:
+            return subprocess.run(["git"] + args, cwd=str(path), capture_output=True, text=True)
+
+        remote_url_res = run_git(["remote", "get-url", "origin"])
+        if remote_url_res.returncode != 0:
+            return {"status": "error", "error": "Could not find an 'origin' remote to push to."}
+            
+        # Get raw remote without https://
+        remote_url = remote_url_res.stdout.strip().replace("https://", "")
+        # Remove any existing token embed if it exists, like prev_token@github...
+        if "@" in remote_url:
+            remote_url = remote_url.split("@")[-1]
+            
+        auth_url = f"https://{github_token}@{remote_url}"
+        
+        # Setup git config user if not exists
+        user_res = run_git(["config", "user.name"])
+        if not user_res.stdout.strip():
+            run_git(["config", "user.name", "DocuGenius"])
+            run_git(["config", "user.email", "agent@docugenius.local"])
+                
+        add_res = run_git(["add", files_to_add])
+        if add_res.returncode != 0:
+            return {"status": "error", "error": f"Failed to git add: {add_res.stderr}"}
+            
+        commit_res = run_git(["commit", "-m", commit_message])
+        
+        branch_res = run_git(["branch", "--show-current"])
+        current_branch = branch_res.stdout.strip() or "main"
+        
+        # Push directly using the inline auth URL so it doesn't leave the token in config
+        push_res = run_git(["push", auth_url, current_branch])
+        if push_res.returncode != 0:
+            # Mask the token in error output so we don't accidentally leak it
+            safe_err = push_res.stderr.replace(github_token, "***TOKEN***")
+            safe_out = push_res.stdout.replace(github_token, "***TOKEN***")
+            return {"status": "error", "error": f"Failed to git push with auth token: {safe_err} {safe_out}"}
+            
+        return {"status": "success", "message": f"Successfully committed and pushed to origin/{current_branch} via GitHub Token."}
+        
+    except Exception as e:
+        safe_e = str(e).replace(github_token, "***TOKEN***")
+        return {"status": "error", "error": f"Exception during token git operations: {safe_e}"}
 
 # ──────────────────────────────────────────────
 # TOOL DISPATCH TABLE
@@ -515,4 +649,6 @@ TOOL_HANDLERS = {
     "document_databases": handle_document_databases,
     "generate_diagrams": handle_generate_diagrams,
     "improve_documentation": handle_improve_documentation,
+    "git_push_ssh": handle_git_push_ssh,
+    "git_push_token": handle_git_push_token,
 }

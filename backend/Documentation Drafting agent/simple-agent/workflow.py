@@ -234,7 +234,19 @@ class AgentWorkflow:
             # ── Step 4: Execute each tool the AI requested ───────────────────
             for tool_call in tool_calls:
                 tool_name = tool_call["name"]
-                tool_args = json.loads(tool_call["arguments"])
+                try:
+                    tool_args = json.loads(tool_call["arguments"])
+                except json.JSONDecodeError as e:
+                    # The LLM generated truncated JSON (usually because the content was too long).
+                    # Log it and skip this tool call rather than crashing the workflow.
+                    print(f"[workflow] JSONDecodeError parsing args for tool '{tool_name}': {e}")
+                    print(f"[workflow] Raw arguments: {tool_call['arguments'][:200]}...")
+                    self._history.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call["id"],
+                        "content": json.dumps({"status": "error", "error": f"Tool arguments were malformed (truncated JSON). This usually means the content passed was too long. Please break the task into smaller steps."})
+                    })
+                    continue
 
                 # Special case: ask_user pauses the workflow until the human answers
                 if tool_name == "ask_user":

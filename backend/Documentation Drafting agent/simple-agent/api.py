@@ -237,7 +237,17 @@ async def get_status(workflow_id: str) -> Dict[str, Any]:
         status = await handle.query(AgentWorkflow.get_status)
         return {"status": status}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # If the worker hasn't started or the workflow is not initialized, catch the exception
+        # so that the UI can gracefully show a waiting state instead of a 500 error.
+        return {
+            "status": {
+                "status": "waiting_for_worker",
+                "last_response": "",
+                "waiting_for_user": False,
+                "message_count": 0,
+                "error": str(e)
+            }
+        }
 
 
 @app.delete("/api/workflows/{workflow_id}")
@@ -427,7 +437,7 @@ async def stream_chat_endpoint(body: ChatRequest):
                 if chunk.choices:
                     delta = chunk.choices[0].delta
                     if delta.content:
-                        yield f"data: {json.dumps({'type': 'content', 'chunk': delta.content})}\n\n"
+                        yield f"data: {json.dumps({'type': 'chunk', 'content': delta.content})}\n\n"
 
             yield f"data: {json.dumps({'type': 'done', 'context_files': context_files})}\n\n"
 
@@ -440,4 +450,4 @@ async def stream_chat_endpoint(body: ChatRequest):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8001))
-    uvicorn.run("api:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("api:app", host="0.0.0.0", port=port)

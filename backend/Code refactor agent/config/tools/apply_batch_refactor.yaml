@@ -1,0 +1,14 @@
+name: apply_batch_refactor
+description: >
+  Atomically apply ALL staged refactoring changes at once.
+  Walks the .refactor_staging/ shadow tree and writes every staged file to its real location.
+  Creates backups for each file before overwriting. Use this after staging multiple files
+  with suggest_refactor to commit a coordinated multi-file refactoring in one shot.
+parameters:
+  type: object
+  properties:
+    dry_run:
+      type: boolean
+      description: "If true, list staged files without applying. ALWAYS do dry_run=true first. Default: true."
+      default: true
+  required: []

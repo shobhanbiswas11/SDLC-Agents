@@ -53,7 +53,7 @@ def _get_openai_client():
 # ──────────────────────────────────────────────
 
 @activity.defn(name="llm_call")
-async def llm_call(messages: list[dict], tool_schemas: list[dict]) -> dict[str, Any]:
+def llm_call(messages: list[dict], tool_schemas: list[dict]) -> dict[str, Any]:
     """
     Sends the full conversation history + available tool schemas to Azure OpenAI.
     
@@ -61,6 +61,16 @@ async def llm_call(messages: list[dict], tool_schemas: list[dict]) -> dict[str, 
       {"content": "Here is my answer..."}           — if the AI gave a text reply
       {"tool_calls": [{"id": ..., "name": ..., "arguments": "..."}]}  — if the AI wants to use a tool
     """
+    # Read max_tokens from the centralized agent config
+    try:
+        import yaml
+        _cfg_path = os.path.join(os.path.dirname(__file__), "config", "agent.yaml")
+        with open(_cfg_path, encoding="utf-8") as _f:
+            _cfg = yaml.safe_load(_f)
+        _max_tokens = int(_cfg.get("settings", {}).get("max_tokens", 16000))
+    except Exception:
+        _max_tokens = 16000
+
     client = _get_openai_client()
     deployment = os.getenv("AZURE_OPENAI_CHATGPT_DEPLOYMENT") or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
 
@@ -70,7 +80,7 @@ async def llm_call(messages: list[dict], tool_schemas: list[dict]) -> dict[str, 
         tools=tool_schemas,
         tool_choice="auto",     # Let the AI decide whether to use a tool
         temperature=0.3,        # Lower = more focused, less creative
-        max_completion_tokens=4096,
+        max_completion_tokens=_max_tokens,
     )
 
     message = response.choices[0].message
@@ -127,7 +137,7 @@ async def run_tool(tool_name: str, tool_args: dict, workspace_path: str) -> dict
 # ──────────────────────────────────────────────
 
 @activity.defn(name="gather_context")
-async def gather_context(workspace_path: str, query: str) -> str:
+def gather_context(workspace_path: str, query: str) -> str:
     """
     RAG Pre-processing: Scans the workspace, extracts metadata, and semantically ranks files 
     against the query to provide crystal clear initial context to the agent.
@@ -195,22 +205,22 @@ async def gather_context(workspace_path: str, query: str) -> str:
     try:
         if query:
             ranked = semantic_rerank(
-                ranked[:20], 
+                ranked[:30], 
                 file_map, 
                 azure_client, 
                 deployment, 
                 query=query,
-                top_k=5,
+                top_k=15,
                 cached_embeddings={}
             )
         else:
-            ranked = ranked[:5]
+            ranked = ranked[:15]
     except Exception as e:
         print(f"Semantic reranking failed (possibly missing embeddings model): {e}")
-        ranked = ranked[:5]
+        ranked = ranked[:15]
 
     context_str = f"Codebase Context ({workspace_path}):\n"
-    context_str += f"Tree (first 30 items):\n{chr(10).join(file_tree[:30])}\n\n"
+    context_str += f"Tree (first 100 items):\n{chr(10).join(file_tree[:100])}\n\n"
     context_str += f"Metadata:\n{metadata_block}\n\n"
     context_str += "Top Relevant Files based on request:\n"
     

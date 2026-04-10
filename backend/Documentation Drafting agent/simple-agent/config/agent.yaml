@@ -23,6 +23,8 @@ tools:
   - document_databases
   - generate_diagrams
   - improve_documentation
+  - git_push_token
+  - git_push_ssh
 
 # System prompt template
 system_prompt: |
@@ -57,7 +59,13 @@ system_prompt: |
   - ALWAYS use `read_file` to read the actual code - never ask users to paste code.
   - When you find issues, explain them clearly.
 
+  ## Git & GitHub Rules
+  - When the user wants to push to GitHub and provides a token (starting with `ghp_`), ALWAYS use `git_push_token`. NEVER use `github_inline_comment` for this.
+  - CRITICAL: Before calling `git_push_token`, you MUST call `write_file` to save any generated content to disk first. The push tool works on LOCAL files.
+  - CRITICAL: If a tool returns `"status": "error"`, you MUST tell the user there was an error and quote the exact error message. NEVER say "success" if the tool returned an error.
+  - If `git_push_token` fails, report the exact error so the user can diagnose the issue.
+
 # Agent behavior settings
 settings:
   temperature: 0.3
-  max_tokens: 4096
+  max_tokens: 16000

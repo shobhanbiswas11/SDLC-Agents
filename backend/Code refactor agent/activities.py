@@ -5,7 +5,7 @@ Two activities:
   1. llm_call  — Send messages to Azure OpenAI and get tool calls or text back.
   2. run_tool  — Find the right tool handler and execute it.
 """
- 
+
 import json
 import os
 import time

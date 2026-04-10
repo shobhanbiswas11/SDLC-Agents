@@ -1,0 +1,30 @@
+name: git_push_token
+description: |
+  CRITICAL: Use this tool to commit and push local workspace modifications to a GitHub repository when you have a GitHub Personal Access Token (PAT).
+  Instead of utilizing the GitHub REST API (`github_inline_comment`), which fails when creating new files or pushing large sets of changes, this tool uses standard native Git commands (`git add`, `git commit`, `git push`) locally.
+  ALWAYS use this tool instead of `github_inline_comment` for pushing completely newly generated documentation!
+  CRITICAL: If you generate text (like a README), you MUST use `write_file` to save it to the local workspace FIRST before calling this tool, because this tool pushes local files.
+  If you don't have the user's PAT, use `ask_user` first.
+
+parameters:
+  type: object
+  properties:
+    github_token:
+      type: string
+      description: "The GitHub Personal Access Token (starting with `ghp_...`) provided by the user."
+    commit_message:
+      type: string
+      description: "The commit message summarizing the changes (e.g., 'docs: add new README.md')."
+      default: "docs: automatic documentation update"
+    files_to_add:
+      type: string
+      description: "Specific files to stage, or `.` for all modified/untracked files."
+      default: "."
+  required:
+    - github_token
+
+activity:
+  name: git_push_token_activity
+  timeout_seconds: 120
+  retry_policy:
+    max_attempts: 1

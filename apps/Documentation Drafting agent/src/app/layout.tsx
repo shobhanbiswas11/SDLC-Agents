@@ -1,33 +1,18 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-import ThemeRegistry from "./ThemeRegistry";
 
-const inter =                Inter({ subsets: ["latin"] });
-
-export const               metadata: Metadata = {
-  title: "DocuGenius AI",
-  description:            "Automated README generation powered by AI",
+export const metadata: Metadata = {
+  title: "DocuGenius AI — GitHub Documentation Drafter",
+  description:
+    "AI-powered documentation drafting agent for GitHub repositories. Generate README, API docs, architecture guides and more with a single chat.",
 };
 
 export default function RootLayout({
   children,
-
-
-
-
-
-  
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <ThemeRegistry>
-          {children}
-        </ThemeRegistry>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

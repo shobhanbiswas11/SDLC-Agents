@@ -16,6 +16,11 @@ import json
 import uuid
 import argparse
 import requests
+import tempfile
+import subprocess
+import shutil
+import os
+import atexit
 from textwrap import dedent
 
 try:
@@ -31,7 +36,7 @@ except ImportError:
     RICH_ENABLED = False
 
 
-API_BASE = "http://localhost:8002"
+API_BASE = "http://127.0.0.1:8002"
 
 def print_banner():
     if RICH_ENABLED:
@@ -57,7 +62,7 @@ def start_workflow(workspace_path: str) -> str:
         response = requests.post(
             f"{API_BASE}/api/workflows",
             json={"agent_id": "reviewer", "workspace_path": workspace_path},
-            timeout=10
+            timeout=100
         )
         response.raise_for_status()
         data = response.json()
@@ -74,7 +79,7 @@ def start_workflow(workspace_path: str) -> str:
 def delete_workflow(workflow_id: str):
     """Clean up the workflow session on the server."""
     try:
-        requests.delete(f"{API_BASE}/api/workflows/{workflow_id}", timeout=5)
+        requests.delete(f"{API_BASE}/api/workflows/{workflow_id}", timeout=60)
     except Exception:
         pass
 
@@ -84,7 +89,7 @@ def send_message(workflow_id: str, message: str):
     requests.post(
         f"{API_BASE}/api/workflows/{workflow_id}/messages",
         json={"message": message},
-        timeout=10
+        timeout=100
     )
 
 
@@ -111,7 +116,7 @@ def poll_until_response(workflow_id: str, initial_message_count: int) -> str:
         with Live(spinner, refresh_per_second=10, transient=True) as live:
             while True:
                 try:
-                    resp = requests.get(f"{API_BASE}/api/workflows/{workflow_id}/status", timeout=10)
+                    resp = requests.get(f"{API_BASE}/api/workflows/{workflow_id}/status", timeout=100)
                     resp.raise_for_status()
                     data = resp.json()
                     status_dict = data.get("status", {})
@@ -125,6 +130,8 @@ def poll_until_response(workflow_id: str, initial_message_count: int) -> str:
                             live.update(Panel("[cyan]⏳ Gathering Codebase Context (Reranking & Metadata)...[/cyan]"))
                         elif status_str == "thinking":
                             live.update(Panel("[yellow]🧠 Agent is thinking or executing tools...[/yellow]"))
+                        elif status_str == "waiting_for_worker":
+                            live.update(Panel("[red]⏳ Waiting for Temporal Worker. Please ensure worker.py is running.[/red]"))
                         last_status = status_str
 
                     # Condition for completion
@@ -140,7 +147,7 @@ def poll_until_response(workflow_id: str, initial_message_count: int) -> str:
         # Fallback for non-rich printing
         while True:
             try:
-                resp = requests.get(f"{API_BASE}/api/workflows/{workflow_id}/status", timeout=10)
+                resp = requests.get(f"{API_BASE}/api/workflows/{workflow_id}/status", timeout=100)
                 data = resp.json().get("status", {})
                 
                 status_str = data.get("status", "idle")
@@ -150,6 +157,8 @@ def poll_until_response(workflow_id: str, initial_message_count: int) -> str:
                         print(" [⏳ Gathering Codebase Context (Reranking & Metadata)...]")
                     elif status_str == "thinking":
                         print(" [🧠 Agent is thinking or executing tools...]")
+                    elif status_str == "waiting_for_worker":
+                        print(" [⏳ Waiting for Temporal Worker. Please ensure worker.py is running.]")
                     else:
                         print(f" [...] Status changed to: {status_str}")
                     last_status = status_str
@@ -167,6 +176,58 @@ def main():
     args = parser.parse_args()
 
     print_banner()
+
+    # Prompt the user to confirm or enter the workspace path
+    if RICH_ENABLED:
+        workspace_input = Prompt.ask(
+            "\n[bold cyan]Enter workspace path[/bold cyan]", 
+            default=args.workspace
+        )
+    else:
+        ans = input(f"\nEnter workspace path (default: '{args.workspace}'): ").strip()
+        workspace_input = ans if ans else args.workspace
+
+    workspace_input = workspace_input.strip()
+
+    if workspace_input.startswith("http://") or workspace_input.startswith("https://") or workspace_input.startswith("git@"):
+        if not shutil.which("git"):
+            if RICH_ENABLED:
+                rprint("[bold red]Git is required to clone remote repositories. Please install Git.[/bold red]")
+            else:
+                print("Git is required to clone remote repositories. Please install Git.")
+            sys.exit(1)
+            
+        temp_dir = tempfile.mkdtemp(prefix="docugenius_repo_")
+        if RICH_ENABLED:
+            rprint(f"[cyan]Cloning remote repository into temporary workspace: {temp_dir}[/cyan]")
+        else:
+            print(f"Cloning remote repository into temporary workspace: {temp_dir}")
+            
+        res = subprocess.run(["git", "clone", workspace_input, temp_dir], capture_output=True, text=True)
+        if res.returncode != 0:
+            if RICH_ENABLED:
+                rprint(f"[bold red]Failed to clone repository:[/bold red]\n{res.stderr}")
+            else:
+                print(f"Failed to clone repository:\n{res.stderr}")
+            sys.exit(1)
+            
+        args.workspace = temp_dir
+        
+        def cleanup_temp_dir():
+            try:
+                def onerror(func, path, exc_info):
+                    import stat
+                    if not os.access(path, os.W_OK):
+                        os.chmod(path, stat.S_IWUSR)
+                        func(path)
+                    else:
+                        raise
+                shutil.rmtree(temp_dir, onerror=onerror)
+            except Exception:
+                pass
+        atexit.register(cleanup_temp_dir)
+    else:
+        args.workspace = workspace_input
 
     if RICH_ENABLED:
         rprint(f"[dim]Starting session bound to workspace: [bold]{args.workspace}[/bold] ...[/dim]")
@@ -199,7 +260,7 @@ def main():
 
             # 2. Get current initial state to know when the agent finishes appending its response
             try:
-                state_resp = requests.get(f"{API_BASE}/api/workflows/{workflow_id}/status", timeout=5).json()
+                state_resp = requests.get(f"{API_BASE}/api/workflows/{workflow_id}/status", timeout=60).json()
                 message_count = state_resp.get("status", {}).get("message_count", 0)
             except Exception:
                 message_count = 0 
