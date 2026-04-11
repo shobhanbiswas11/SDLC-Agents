@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { streamChat, type StreamEvent } from '../lib/api';
+import { streamChat, pushToGitHub, type StreamEvent } from '../lib/api';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Types
@@ -78,6 +78,13 @@ const GithubSVG = () => (
     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
   </svg>
 );
+const PushSVG = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+);
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Component
@@ -99,6 +106,13 @@ export default function Home() {
   const [previewMd, setPreviewMd]   = useState('');
   const [previewTab, setPreviewTab] = useState<'preview' | 'raw'>('preview');
   const [copied, setCopied]         = useState(false);
+
+  // ── Push to GitHub modal state ──
+  const [showPushModal, setShowPushModal] = useState(false);
+  const [pushPath, setPushPath]           = useState('README.md');
+  const [pushMsg, setPushMsg]             = useState('docs: update documentation via DocuGenius');
+  const [pushing, setPushing]             = useState(false);
+  const [pushResult, setPushResult]       = useState<{ ok: boolean; url?: string; err?: string } | null>(null);
 
   const endRef   = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -194,6 +208,34 @@ export default function Home() {
     const a = document.createElement('a'); a.href = url;
     a.download = activeSection ? `${activeSection}.md` : 'documentation.md';
     a.click(); URL.revokeObjectURL(url);
+  };
+
+  /* ── Push to GitHub ── */
+  const openPushModal = () => {
+    // Pre-fill a sensible file path based on the active section
+    const sectionPathMap: Record<string, string> = {
+      readme: 'README.md',
+      install: 'docs/INSTALLATION.md',
+      api: 'docs/API.md',
+      architecture: 'docs/ARCHITECTURE.md',
+      contributing: 'CONTRIBUTING.md',
+      changelog: 'CHANGELOG.md',
+      security: 'SECURITY.md',
+      faq: 'docs/FAQ.md',
+    };
+    if (activeSection && sectionPathMap[activeSection]) {
+      setPushPath(sectionPathMap[activeSection]);
+    }
+    setPushResult(null);
+    setShowPushModal(true);
+  };
+  const handlePush = async () => {
+    if (!pushPath.trim() || !previewMd || !repoName || !token) return;
+    setPushing(true);
+    setPushResult(null);
+    const result = await pushToGitHub(repoName, token, pushPath.trim(), previewMd, pushMsg.trim() || 'docs: update via DocuGenius');
+    setPushResult(result.success ? { ok: true, url: result.url } : { ok: false, err: result.error });
+    setPushing(false);
   };
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -429,6 +471,9 @@ export default function Home() {
               <button id="btn-download" className="icon-btn" onClick={handleDownload} disabled={!previewMd} title="Download .md">
                 <DownloadSVG />
               </button>
+              <button id="btn-push-github" className="icon-btn icon-btn--push" onClick={openPushModal} disabled={!previewMd || !connected} title="Push to GitHub">
+                <PushSVG />
+              </button>
             </div>
           </div>
 
@@ -450,6 +495,65 @@ export default function Home() {
           )}
         </aside>
       </div>
+
+      {/* ════════════════════════════════════════════════════════════════
+          PUSH TO GITHUB MODAL
+          ════════════════════════════════════════════════════════════════ */}
+      {showPushModal && (
+        <div className="modal-overlay" onClick={() => { if (!pushing) setShowPushModal(false); }}>
+          <div className="modal" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <div className="modal-header">
+              <h3 id="modal-title"><GithubSVG /> Push to GitHub</h3>
+              <button className="modal-close" onClick={() => setShowPushModal(false)} disabled={pushing} aria-label="Close">✕</button>
+            </div>
+
+            <div className="modal-body">
+              <label className="modal-label" htmlFor="push-path">File path in repo</label>
+              <input
+                id="push-path"
+                className="modal-input"
+                value={pushPath}
+                onChange={e => setPushPath(e.target.value)}
+                placeholder="README.md"
+                disabled={pushing}
+              />
+
+              <label className="modal-label" htmlFor="push-commit">Commit message</label>
+              <input
+                id="push-commit"
+                className="modal-input"
+                value={pushMsg}
+                onChange={e => setPushMsg(e.target.value)}
+                placeholder="docs: update documentation via DocuGenius"
+                disabled={pushing}
+              />
+
+              {pushResult && (
+                pushResult.ok ? (
+                  <div className="push-success">
+                    ✅ Pushed successfully!{' '}
+                    {pushResult.url && <a href={pushResult.url} target="_blank" rel="noopener noreferrer">View on GitHub ↗</a>}
+                  </div>
+                ) : (
+                  <div className="push-error">⚠️ {pushResult.err}</div>
+                )
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setShowPushModal(false)} disabled={pushing}>Cancel</button>
+              <button
+                id="btn-confirm-push"
+                className="btn-confirm-push"
+                onClick={handlePush}
+                disabled={pushing || !pushPath.trim()}
+              >
+                {pushing ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Pushing…</> : <><PushSVG /> Push to GitHub</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

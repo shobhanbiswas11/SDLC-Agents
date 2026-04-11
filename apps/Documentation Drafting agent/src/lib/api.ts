@@ -103,3 +103,81 @@ export async function pollStatus(
 export async function stopWorkflow(workflowId: string): Promise<void> {
   await fetch(`${BASE}/api/workflows/${workflowId}`, { method: "DELETE" });
 }
+
+// ── GitHub Push ───────────────────────────────────────────────────────────────
+
+export interface PushResult {
+  success: boolean;
+  url?: string;
+  error?: string;
+}
+
+/**
+ * Pushes markdown content to a file in a GitHub repo using the GitHub Contents API.
+ * Works directly from the browser — no backend required.
+ * @param repo  "owner/repo" string
+ * @param token GitHub personal access token with repo scope
+ * @param path  File path in the repo, e.g. "README.md" or "docs/api.md"
+ * @param content  Markdown string to write
+ * @param commitMessage  Git commit message
+ */
+export async function pushToGitHub(
+  repo: string,
+  token: string,
+  path: string,
+  content: string,
+  commitMessage: string
+): Promise<PushResult> {
+  const apiBase = `https://api.github.com/repos/${repo}/contents/${path}`;
+
+  // 1. Try to get the current SHA of the file (needed if updating an existing file)
+  let sha: string | undefined;
+  try {
+    const getRes = await fetch(apiBase, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+      },
+    });
+    if (getRes.ok) {
+      const data = await getRes.json();
+      sha = data.sha as string;
+    }
+  } catch {
+    // File likely doesn't exist yet — that's fine
+  }
+
+  // 2. Base64-encode the content (GitHub API requires this)
+  const encoded = btoa(unescape(encodeURIComponent(content)));
+
+  // 3. PUT the file
+  const body: Record<string, unknown> = {
+    message: commitMessage,
+    content: encoded,
+  };
+  if (sha) body.sha = sha; // required when updating an existing file
+
+  try {
+    const putRes = await fetch(apiBase, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!putRes.ok) {
+      const err = await putRes.json().catch(() => ({ message: putRes.statusText }));
+      return { success: false, error: err.message ?? `HTTP ${putRes.status}` };
+    }
+
+    const result = await putRes.json();
+    const htmlUrl: string =
+      result?.content?.html_url ?? `https://github.com/${repo}/blob/main/${path}`;
+    return { success: true, url: htmlUrl };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
