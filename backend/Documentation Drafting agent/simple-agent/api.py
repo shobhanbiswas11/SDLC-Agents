@@ -42,6 +42,8 @@ from intelligence.semantic_ranker import semantic_rerank
 from intelligence.context_selector import select_snippets
 from intelligence.chat_prompt import build_chat_prompt
 
+_GLOBAL_EMBEDDING_CACHE = {}
+
 # Load .env file
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
@@ -322,7 +324,7 @@ async def chat_endpoint(body: ChatRequest):
             try:
                 ranked = semantic_rerank(
                     ranked[:40], file_map, azure_client, embedding_deployment,
-                    query=body.message, top_k=5, cached_embeddings={}
+                    query=body.message, top_k=5, cached_embeddings=_GLOBAL_EMBEDDING_CACHE
                 )
             except Exception as e:
                 print(f"Semantic reranking failed, falling back to structural rank: {e}")
@@ -407,7 +409,7 @@ async def stream_chat_endpoint(body: ChatRequest):
                 try:
                     ranked = semantic_rerank(
                         ranked[:40], file_map, azure_client, embedding_deployment,
-                        query=body.message, top_k=5, cached_embeddings={}
+                        query=body.message, top_k=5, cached_embeddings=_GLOBAL_EMBEDDING_CACHE
                     )
                 except Exception as e:
                     print(f"Semantic reranking failed, falling back to structural rank: {e}")
@@ -428,7 +430,7 @@ async def stream_chat_endpoint(body: ChatRequest):
                     {"role": "system", "content": "You are a helpful and expert AI code assistant specialized in documentation. Output your responses directly in raw Markdown. NEVER wrap your entire response in a markdown code fence (```markdown ... ```). Only use code fences for actual code snippets. When generating documentation, start directly with the heading (e.g., '# Project Name')."},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.3,
+                temperature=0.2,
                 max_tokens=4000,
                 stream=True,
             )
