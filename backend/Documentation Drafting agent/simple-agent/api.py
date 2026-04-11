@@ -339,11 +339,11 @@ async def chat_endpoint(body: ChatRequest):
         response = azure_client.chat.completions.create(
             model=chat_deployment,
             messages=[
-                {"role": "system", "content": "You are a helpful and expert AI code assistant."},
+                {"role": "system", "content": "You are a helpful and expert AI code assistant specialized in documentation. Output your responses directly in raw Markdown. NEVER wrap your entire response in a markdown code fence (```markdown ... ```). Only use code fences for actual code snippets. When generating documentation, start directly with the heading (e.g., '# Project Name')."},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.3,
-            max_tokens=2000,
+            max_tokens=4000,
         )
 
         return ChatResponse(
@@ -425,11 +425,11 @@ async def stream_chat_endpoint(body: ChatRequest):
             response = azure_client.chat.completions.create(
                 model=chat_deployment,
                 messages=[
-                    {"role": "system", "content": "You are a helpful and expert AI code assistant."},
+                    {"role": "system", "content": "You are a helpful and expert AI code assistant specialized in documentation. Output your responses directly in raw Markdown. NEVER wrap your entire response in a markdown code fence (```markdown ... ```). Only use code fences for actual code snippets. When generating documentation, start directly with the heading (e.g., '# Project Name')."},
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
-                max_tokens=2000,
+                max_tokens=4000,
                 stream=True,
             )
 

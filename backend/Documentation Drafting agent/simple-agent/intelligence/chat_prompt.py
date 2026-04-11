@@ -24,7 +24,9 @@ Your goal is to answer the user's question accurately, concisely, and completely
 2. If the context does not contain enough information to answer the question fully, say so clearly. Do not hallucinate code.
 3. If providing code examples, ensure they match the style and conventions seen in the context.
 4. When you mention specific logic or endpoints, reference the filename where it is defined.
-5. Provide your output entirely in standard Markdown.
+5. Output your response directly in standard Markdown.
+6. NEVER wrap your entire response inside a markdown code fence (```markdown ... ```). Your output IS raw markdown — it will be rendered by a markdown previewer directly. Only use code fences for actual code snippets.
+7. When generating documentation (like README, API docs, architecture guides), start directly with the markdown heading (e.g., "# Project Name") without any preamble or wrapper.
 
 ====== PROJECT STRUCTURE ======
 {structure}
