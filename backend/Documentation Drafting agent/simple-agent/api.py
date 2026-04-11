@@ -324,13 +324,13 @@ async def chat_endpoint(body: ChatRequest):
             try:
                 ranked = semantic_rerank(
                     ranked[:40], file_map, azure_client, embedding_deployment,
-                    query=body.message, top_k=10, cached_embeddings=_GLOBAL_EMBEDDING_CACHE
+                    query=body.message, top_k=15, cached_embeddings=_GLOBAL_EMBEDDING_CACHE
                 )
             except Exception as e:
                 print(f"Semantic reranking failed, falling back to structural rank: {e}")
-                ranked = ranked[:10]
+                ranked = ranked[:15]
         else:
-            ranked = ranked[:10]
+            ranked = ranked[:15]
 
         # Step 6 + 7: Slice snippets, build prompt, call LLM
         context_files = [p for p, _ in ranked]
@@ -409,13 +409,13 @@ async def stream_chat_endpoint(body: ChatRequest):
                 try:
                     ranked = semantic_rerank(
                         ranked[:40], file_map, azure_client, embedding_deployment,
-                        query=body.message, top_k=10, cached_embeddings=_GLOBAL_EMBEDDING_CACHE
+                        query=body.message, top_k=15, cached_embeddings=_GLOBAL_EMBEDDING_CACHE
                     )
                 except Exception as e:
                     print(f"Semantic reranking failed, falling back to structural rank: {e}")
-                    ranked = ranked[:10]
+                    ranked = ranked[:15]
             else:
-                ranked = ranked[:10]
+                ranked = ranked[:15]
 
             context_files = [p for p, _ in ranked]
             code_snippets = select_snippets(file_map, ranked, max_chars=16000, lines_per_file=150)
