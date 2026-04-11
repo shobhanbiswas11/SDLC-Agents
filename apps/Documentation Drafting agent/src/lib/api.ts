@@ -27,12 +27,14 @@ export async function streamChat(
   repo: string,
   accessToken: string,
   message: string,
-  onEvent: (ev: StreamEvent) => void
+  onEvent: (ev: StreamEvent) => void,
+  signal?: AbortSignal
 ): Promise<void> {
   const res = await fetch(`${BASE}/stream-chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repo, access_token: accessToken, message }),
+    signal,
   });
 
   if (!res.ok || !res.body) {
@@ -44,24 +46,33 @@ export async function streamChat(
   const decoder = new TextDecoder();
   let buffer = "";
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        try {
-          const ev: StreamEvent = JSON.parse(line.slice(6));
-          onEvent(ev);
-        } catch {
-          /* skip malformed */
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const ev: StreamEvent = JSON.parse(line.slice(6));
+            onEvent(ev);
+          } catch {
+            /* skip malformed */
+          }
         }
       }
     }
+  } catch (err) {
+    // Ignore abort errors — these are intentional cancellations
+    if (err instanceof Error && err.name === "AbortError") return;
+    throw err;
+  } finally {
+    reader.releaseLock();
   }
 }
+
 
 // ── Temporal Workflow Session ─────────────────────────────────────────────────
 

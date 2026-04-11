@@ -114,8 +114,9 @@ export default function Home() {
   const [pushing, setPushing]             = useState(false);
   const [pushResult, setPushResult]       = useState<{ ok: boolean; url?: string; err?: string } | null>(null);
 
-  const endRef   = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const endRef    = useRef<HTMLDivElement>(null);
+  const inputRef  = useRef<HTMLTextAreaElement>(null);
+  const abortRef  = useRef<AbortController | null>(null);
 
   /* ── Auto-scroll ── */
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -158,6 +159,12 @@ export default function Home() {
     setInput('');
     setStreaming(true);
 
+    // Cancel any previous in-flight stream before starting a new one.
+    // This prevents React StrictMode double-invocation from accumulating chunks twice.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     let accum = '';
 
     try {
@@ -182,13 +189,21 @@ export default function Home() {
           setPreviewMd(accum);
           setActive(secId);
         }
-      });
+      }, controller.signal);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
+      // Don't show an error if the request was intentionally aborted
+      if (msg === 'The user aborted a request.' || msg === 'AbortError') {
+        setMessages(p => p.filter(m => m.id !== aid && m.id !== uid));
+        return;
+      }
       setMessages(p => p.map(m =>
         m.id === aid ? { ...m, streaming: false, status: undefined, content: `⚠️ **Error:** ${msg}` } : m
       ));
-    } finally { setStreaming(false); }
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null;
+      setStreaming(false);
+    }
   }, [streaming, connected, repoName, token]);
 
   const handleSend    = () => { if (input.trim()) send(input.trim()); };
