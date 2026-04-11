@@ -169,14 +169,23 @@ export default function Home() {
 
     try {
       await streamChat(repoName, token, text, (ev: StreamEvent) => {
+        // IMPORTANT: Accumulate content BEFORE setMessages.
+        // React 18 StrictMode calls state updater functions twice to detect
+        // impure updaters. If we mutate `accum` inside the updater, it gets
+        // mutated twice per event, causing every word to be doubled.
+        if (ev.type === 'chunk') {
+          accum += ev.content ?? '';
+        }
+
+        const snapshot = accum; // capture current value for the pure updater
+
         setMessages(prev => prev.map(m => {
           if (m.id !== aid) return m;
           switch (ev.type) {
             case 'status':
               return { ...m, status: ev.message ?? '' };
             case 'chunk':
-              accum += ev.content ?? '';
-              return { ...m, content: accum, status: undefined };
+              return { ...m, content: snapshot, status: undefined };
             case 'done':
               return { ...m, streaming: false, status: undefined, contextFiles: ev.context_files };
             case 'error':
@@ -186,7 +195,7 @@ export default function Home() {
         }));
 
         if (secId && (ev.type === 'chunk' || ev.type === 'done')) {
-          setPreviewMd(accum);
+          setPreviewMd(snapshot);
           setActive(secId);
         }
       }, controller.signal);
