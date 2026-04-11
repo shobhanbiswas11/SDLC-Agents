@@ -433,7 +433,16 @@ async def stream_chat_endpoint(body: ChatRequest):
                 stream=True,
             )
 
-            for chunk in response:
+            # IMPORTANT: Iterate the synchronous OpenAI stream in a thread pool.
+            # The sync `next(iterator)` blocks until Azure sends the next token.
+            # If we run it on the event loop, uvicorn can't flush previous chunks
+            # to the browser — causing the entire response to appear at once.
+            _sentinel = object()
+            response_iter = iter(response)
+            while True:
+                chunk = await asyncio.to_thread(next, response_iter, _sentinel)
+                if chunk is _sentinel:
+                    break
                 if chunk.choices:
                     delta = chunk.choices[0].delta
                     if delta.content:
@@ -445,7 +454,15 @@ async def stream_chat_endpoint(body: ChatRequest):
             print(f"Error in /stream-chat: {e}")
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 if __name__ == "__main__":
