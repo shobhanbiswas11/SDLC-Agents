@@ -194,9 +194,10 @@ export default function Home() {
           }
         }));
 
-        if (secId && (ev.type === 'chunk' || ev.type === 'done')) {
+        // Always update the preview panel so the user can review and push any response
+        if (ev.type === 'chunk' || ev.type === 'done') {
           setPreviewMd(snapshot);
-          setActive(secId);
+          if (secId) setActive(secId);
         }
       }, controller.signal);
     } catch (err: unknown) {
