@@ -603,6 +603,39 @@ body {
 .typing span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes dot { 0%,80%,100%{transform:scale(0.7);opacity:0.35} 40%{transform:scale(1.1);opacity:1} }
 
+/* ── ChatGPT-style streaming cursor ── */
+.streaming-text {
+  position: relative;
+}
+.typing-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 18px;
+  background: var(--accent-2);
+  border-radius: 2px;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: cursorBlink 0.8s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+/* Smooth text appearance during streaming */
+.streaming-text p:last-of-type,
+.streaming-text li:last-of-type,
+.streaming-text h1:last-of-type,
+.streaming-text h2:last-of-type,
+.streaming-text h3:last-of-type {
+  animation: textFadeIn 0.15s ease both;
+}
+@keyframes textFadeIn {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
+}
+
 /* ── Input Composer ── */
 .composer {
   padding: 16px 20px 18px;

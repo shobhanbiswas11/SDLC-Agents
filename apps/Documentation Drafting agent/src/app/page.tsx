@@ -432,7 +432,10 @@ export default function Home() {
                           {msg.streaming && msg.status && (
                             <div className="status-pill" style={{ marginBottom: 12 }}><div className="spinner" />{msg.status}</div>
                           )}
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                          <div className={msg.streaming ? 'streaming-text' : ''}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                            {msg.streaming && <span className="typing-cursor" />}
+                          </div>
                         </>
                       )}
                       {/* Context files */}
