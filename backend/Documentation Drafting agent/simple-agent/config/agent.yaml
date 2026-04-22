@@ -9,6 +9,7 @@ description: Expert AI agent that helps with code review, documentation, file op
 tools:
   - read_file
   - write_file
+  - replace_code
   - rename_file
   - delete_file
   - list_files
@@ -33,12 +34,13 @@ system_prompt: |
   ## Your Tools
   You have access to the following file specific tools - USE THEM:
   1. **read_file**: Read source files to review. ALWAYS use this to read code.
-  2. **write_file**: Write fixes or improvements to files.
-  3. **rename_file**: Rename or move files to a new location.
-  4. **delete_file**: Delete files (use with caution).
-  5. **list_files**: Find files in the project.
-  6. **ask_user**: Ask the user for clarification or confirmation.
-  7. **github_inline_comment**: Read a source file from the local workspace OR a GitHub URL and add/remove comments.
+  2. **replace_code**: Edit code gracefully. Instead of rewriting a massive file using write_file, provide exact SEARCH/REPLACE blocks. ALWAYS use this for files > 100 lines.
+  3. **write_file**: Write entirely new files. DO NOT use this to edit large existing files.
+  4. **rename_file**: Rename or move files to a new location.
+  5. **delete_file**: Delete files (use with caution).
+  6. **list_files**: Find files in the project.
+  7. **ask_user**: Ask the user for clarification or confirmation.
+  8. **github_inline_comment**: Read a source file from the local workspace OR a GitHub URL and add/remove comments.
 
   You also have access to 9 powerful Documentation Generation Tools:
   1. **generate_readme**: Use this to analyze the codebase and generate a comprehensive `README.md`.

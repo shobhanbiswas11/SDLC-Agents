@@ -345,7 +345,7 @@ async def chat_endpoint(body: ChatRequest):
                 {"role": "user", "content": prompt},
             ],
             temperature=0.3,
-            max_tokens=4000,
+            max_tokens=4096,
         )
 
         return ChatResponse(
@@ -392,13 +392,16 @@ async def stream_chat_endpoint(body: ChatRequest):
                 return
 
             yield f"data: {json.dumps({'type': 'status', 'message': 'Analyzing codebase and ranking files...'})}\n\n"
+            await asyncio.sleep(0.05)  # flush SSE to client
 
             metadata = extract_all_metadata(file_map)
             metadata_block = format_metadata_block(metadata)
             structure = "\n".join([f"Repository: {target_name}"] + file_tree)
 
-            graph = build_combined_graph(file_map)
-            ranked = rank_files(file_map, file_tree, graph, top_k=40, include_all=False)
+            # Prevent event loop blocking entirely by running CPU bound tasks in threads
+            graph = await asyncio.to_thread(build_combined_graph, file_map)
+            ranked = await asyncio.to_thread(rank_files, file_map, file_tree, graph, top_k=40, include_all=False)
+            print(f"Top ranked files: {[p for p, _ in ranked[:15]]}")
 
             azure_client = _get_azure_client()
             embedding_deployment = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-ada-002")

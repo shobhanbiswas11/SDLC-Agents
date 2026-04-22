@@ -11,6 +11,7 @@ import re
 import socket
 import subprocess
 import time
+import shutil
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -28,6 +29,14 @@ CONTAINER_RUNTIME = os.getenv("CONTAINER_RUNTIME", "docker")
 
 
 def _rt() -> str:
+    resolved = shutil.which(CONTAINER_RUNTIME)
+    if resolved:
+        return resolved
+    # Fallback for Windows if PATH is not updated in the active terminal
+    if CONTAINER_RUNTIME.lower() == "podman":
+        fallback_path = Path(os.getenv("LOCALAPPDATA", "")) / "Programs" / "Podman" / "podman.exe"
+        if fallback_path.exists():
+            return str(fallback_path)
     return CONTAINER_RUNTIME
 
 

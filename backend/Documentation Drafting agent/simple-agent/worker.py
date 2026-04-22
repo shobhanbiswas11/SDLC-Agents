@@ -64,6 +64,8 @@ async def main():
             workflows=[AgentWorkflow],       # Register our workflow class
             activities=[llm_call, run_tool, gather_context],  # Register our activity functions
             activity_executor=activity_executor, # Provide thread pool to run synchronous activities
+            max_concurrent_activities=int(os.environ.get("TEMPORAL_MAX_ACTIVITIES", 101)),
+            max_concurrent_workflow_tasks=int(os.environ.get("TEMPORAL_MAX_WORKFLOW_TASKS", 100)),
         ):
             print("✅ Worker is running. Press Ctrl+C to stop.\n")
             await asyncio.Event().wait()  # Block forever

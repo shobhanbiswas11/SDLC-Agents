@@ -626,6 +626,30 @@ async def handle_git_push_token(github_token: str, commit_message: str = "docs: 
         safe_e = str(e).replace(github_token, "***TOKEN***")
         return {"status": "error", "error": f"Exception during token git operations: {safe_e}"}
 
+async def handle_replace_code(file_path: str, replacements: str, workspace_path: str = ".", **_) -> dict:
+    """Apply <<<< ==== >>>> style search and replace blocks to elegantly edit files."""
+    path = Path(file_path) if Path(file_path).is_absolute() else Path(workspace_path) / file_path
+    if not path.exists():
+        return {"status": "error", "error": f"File not found: {path}"}
+        
+    original_code = path.read_text(encoding="utf-8")
+    
+    import re
+    pattern = re.compile(r"<<<<[ \t]*\n(.*?)\n====[ \t]*\n(.*?)\n>>>>", re.DOTALL)
+    blocks = pattern.findall(replacements)
+    
+    if not blocks:
+        return {"status": "error", "error": "No SEARCH/REPLACE blocks found. Use the exact format."}
+
+    new_content = original_code
+    for original_block, replace_block in blocks:
+        if original_block not in new_content:
+            return {"status": "error", "error": f"Search block not found exactly in file:\n{original_block[:150]}..."}
+        new_content = new_content.replace(original_block, replace_block, 1)
+
+    path.write_text(new_content, encoding="utf-8")
+    return {"status": "success", "message": f"Successfully applied {len(blocks)} replacement(s) to '{path.name}'."}
+
 # ──────────────────────────────────────────────
 # TOOL DISPATCH TABLE
 # Maps tool name (as defined in YAML filenames) -> handler function
@@ -633,6 +657,7 @@ async def handle_git_push_token(github_token: str, commit_message: str = "docs: 
 # ──────────────────────────────────────────────
 
 TOOL_HANDLERS = {
+    "replace_code": handle_replace_code,                    # config/tools/replace_code.yaml
     "github_inline_comment": handle_github_inline_comment,  # config/tools/github_inline_comment.yaml
     "read_file": handle_read_file,                          # config/tools/read_file.yaml
     "write_file": handle_write_file,                        # config/tools/write_file.yaml

@@ -54,7 +54,7 @@ async def main():
         workflows=[AgentWorkflow],
         activities=[llm_call, run_tool],
     ):
-        print("✅ Worker is running. Press Ctrl+C to stop.\n")
+        print("✅ Worker is running. Press Ctrl+C to stop .\n")
         await asyncio.Event().wait()
  
  

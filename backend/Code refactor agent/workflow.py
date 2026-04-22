@@ -140,7 +140,6 @@ class AgentWorkflow:
  
             if self._should_exit:
                 break
- 
             if self._pending_messages:
                 message = self._pending_messages.pop(0)
                 self._status = "thinking"
