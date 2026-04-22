@@ -1,0 +1,28 @@
+name: github_put_file
+description: >
+  Push a single file to a GitHub repository using the GitHub API (no git required).
+  Only call this after explicit user approval. Prefer this over git_commit_push for
+  GitHub-backed sessions when only one file has changed.
+
+parameters:
+  type: object
+  properties:
+    repo_url:
+      type: string
+      description: Full GitHub repository URL
+    file_path:
+      type: string
+      description: Repository-relative path to the file to push (e.g. src/utils.py)
+    content:
+      type: string
+      description: Full new content of the file to write. Use the value "staged" to read from the staging file automatically.
+    commit_message:
+      type: string
+      description: Commit message for the push
+    branch:
+      type: string
+      description: Branch to push to. Defaults to the repo default branch.
+  required:
+    - repo_url
+    - file_path
+    - commit_message

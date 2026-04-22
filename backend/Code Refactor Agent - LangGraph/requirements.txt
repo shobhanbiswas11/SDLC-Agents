@@ -1,0 +1,30 @@
+# ── LangGraph orchestration (replaces temporalio) ────────────────────────────
+langgraph>=1.0.0
+langchain-core>=0.2.0
+langgraph-checkpoint-sqlite>=3.0.0   # SQLite state persistence (LangGraph 1.x)
+aiosqlite>=0.20.0                    # async SQLite backend
+
+# ── API Server (replaces worker.py) ──────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+
+# ── Azure OpenAI ──────────────────────────────────────────────────────────────
+openai>=1.30.0
+azure-identity>=1.16.0
+
+# ── Configuration & CLI ───────────────────────────────────────────────────────
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+rich>=13.0.0
+
+# ── Token counting (for context trimming) ────────────────────────────────────
+tiktoken>=0.7.0
+
+# ── Semantic safety — optional JS AST parsing (gracefully skipped if absent) ─
+esprima>=4.0.1
+
+# ── Tree-sitter AST skeleton generation (optional, gracefully skipped) ───────
+tree-sitter>=0.21.0
+tree-sitter-python>=0.21.0
+tree-sitter-javascript>=0.21.0
+tree-sitter-typescript>=0.21.0

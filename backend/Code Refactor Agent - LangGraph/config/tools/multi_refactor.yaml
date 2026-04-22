@@ -1,0 +1,25 @@
+name: multi_refactor
+description: >
+  Search and replace a symbol or text pattern across multiple files in the workspace.
+  Use dry_run=true first to preview all changes, then dry_run=false to apply them.
+  Useful for renaming functions, classes, variables, or updating strings across the codebase.
+parameters:
+  type: object
+  properties:
+    search_pattern:
+      type: string
+      description: "The exact text or symbol to find across files."
+    replacement:
+      type: string
+      description: "The text to replace each occurrence with."
+    file_pattern:
+      type: string
+      description: "Glob pattern to filter files (e.g. '*.py', '*.js'). Default: all files."
+      default: "*"
+    dry_run:
+      type: boolean
+      description: "If true, only preview changes without applying. ALWAYS do dry_run=true first. Default: true."
+      default: true
+  required:
+    - search_pattern
+    - replacement
