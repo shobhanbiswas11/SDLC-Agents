@@ -1,0 +1,25 @@
+# ── LangGraph orchestration (replaces temporalio) ────────────────────────────
+langgraph>=1.0.0
+langchain-core>=0.2.0
+langgraph-checkpoint-sqlite>=3.0.0   # SQLite state persistence
+aiosqlite>=0.20.0                    # async SQLite backend
+
+# ── API Server ───────────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+slowapi>=0.1.9                       # Rate limiting middleware
+
+# ── AI & Auth ────────────────────────────────────────────────────────────────
+openai>=1.30.0
+azure-identity>=1.16.0
+tiktoken>=0.7.0
+google-genai>=1.0.0                  # New Gemini SDK (replaces google-generativeai)
+
+# ── Utils & Config ───────────────────────────────────────────────────────────
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+rich>=13.0.0
+
+# ── Network requests (for tools / RAG) ───────────────────────────────────────
+requests>=2.32.5
+aiohttp>=3.9.5

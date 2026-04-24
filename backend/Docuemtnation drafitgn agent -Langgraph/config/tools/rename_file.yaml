@@ -1,0 +1,25 @@
+# Rename/Move File Tool
+# Renames or moves a file from one path to another
+
+name: rename_file
+description: Rename or move a file from one path to another. Can also be used to move files between directories.
+
+parameters:
+  type: object
+  properties:
+    source_path:
+      type: string
+      description: Current path of the file to rename/move
+    destination_path:
+      type: string
+      description: New path for the file (including new filename)
+  required:
+    - source_path
+    - destination_path
+
+activity:
+  name: rename_file_activity
+  timeout_seconds: 30
+  retry_policy:
+    max_attempts: 3
+    initial_interval_seconds: 1

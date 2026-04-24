@@ -13,11 +13,14 @@ export interface StreamEvent {
   context_files?: string[];
 }
 
-export interface WorkflowStatus {
+export interface SessionStatus {
   status: string;
   last_response: string;
   waiting_for_user: boolean;
-  message_count: number;
+  interrupted_question?: string;
+  navigated_file?: string;
+  created_files?: string[];
+  message_count?: number;
   error?: string;
 }
 
@@ -74,27 +77,27 @@ export async function streamChat(
 }
 
 
-// ── Temporal Workflow Session ─────────────────────────────────────────────────
+// ── LangGraph Session ─────────────────────────────────────────────────────────
 
-export async function startWorkflow(
+export async function startSession(
   agentId = "reviewer",
   workspacePath = "."
 ): Promise<string> {
-  const res = await fetch(`${BASE}/api/workflows`, {
+  const res = await fetch(`${BASE}/sessions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ agent_id: agentId, workspace_path: workspacePath }),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
-  return data.workflow_id as string;
+  return data.session_id as string;
 }
 
 export async function sendMessage(
-  workflowId: string,
+  sessionId: string,
   message: string
 ): Promise<void> {
-  const res = await fetch(`${BASE}/api/workflows/${workflowId}/messages`, {
+  const res = await fetch(`${BASE}/sessions/${sessionId}/message`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message }),
@@ -102,17 +105,28 @@ export async function sendMessage(
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
-export async function pollStatus(
-  workflowId: string
-): Promise<WorkflowStatus> {
-  const res = await fetch(`${BASE}/api/workflows/${workflowId}/status`);
+export async function answerQuestion(
+  sessionId: string,
+  answer: string
+): Promise<void> {
+  const res = await fetch(`${BASE}/sessions/${sessionId}/answer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ answer }),
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  return data.status as WorkflowStatus;
 }
 
-export async function stopWorkflow(workflowId: string): Promise<void> {
-  await fetch(`${BASE}/api/workflows/${workflowId}`, { method: "DELETE" });
+export async function pollStatus(
+  sessionId: string
+): Promise<SessionStatus> {
+  const res = await fetch(`${BASE}/sessions/${sessionId}/status`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.json() as SessionStatus;
+}
+
+export async function stopSession(sessionId: string): Promise<void> {
+  await fetch(`${BASE}/sessions/${sessionId}`, { method: "DELETE" });
 }
 
 // ── GitHub Push ───────────────────────────────────────────────────────────────

@@ -1,0 +1,21 @@
+name: replace_code
+description: Apply search and replace blocks to gracefully edit code or add comments without rewriting the entire file. Use this for ANY file > 100 lines instead of write_file to save tokens and prevent truncations.
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: The relative or absolute path of the file you want to edit.
+    replacements:
+      type: string
+      description: |
+        The SEARCH/REPLACE blocks. Use this exact format:
+        <<<<
+        [exact literal original lines]
+        ====
+        [new lines]
+        >>>>
+        You can stack multiple blocks if needed. The SEARCH block must be an EXACT literal substring match of the target file's current content.
+  required:
+    - file_path
+    - replacements

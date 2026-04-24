@@ -1,0 +1,38 @@
+# Git Push SSH Tool
+# Pushes changes in the local workspace to a GitHub repository using an SSH private key.
+
+name: git_push_ssh
+description: |
+  Pushes local changes in the repository directly to a GitHub repository utilizing an SSH private key that you provide.
+  If you do not have the SSH private key, you MUST use the `ask_user` tool first to ask the user to provide their SSH private key (begins with `-----BEGIN OPENSSH PRIVATE KEY-----`).
+  Once you have the SSH private key string context, you can execute this tool to automatically stage (git add), commit, and push the files via SSH.
+  Use this when asked to "Push this into github directly using my private key".
+
+parameters:
+  type: object
+  properties:
+    ssh_private_key:
+      type: string
+      description: "The raw SSH Private Key string that the user provided to authenticate with GitHub."
+    commit_message:
+      type: string
+      description: "The git commit message to use for the changes."
+      default: "docs: update documentation"
+    files_to_add:
+      type: string
+      description: "The files to stage for commit. Use `.` for all files, or a specific path like `README.md`."
+      default: "."
+    github_repo_url:
+      type: string
+      description: "Optional. The remote GitHub repo URL in SSH format (e.g. `git@github.com:username/repo.git`). If provided, the origin remote will be updated to this URL before pushing."
+      default: ""
+  required:
+    - ssh_private_key
+    - commit_message
+
+# Temporal activity settings
+activity:
+  name: git_push_ssh_activity
+  timeout_seconds: 120
+  retry_policy:
+    max_attempts: 1

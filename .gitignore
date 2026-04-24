@@ -43,3 +43,7 @@ Thumbs.db
 **/temporal.exe
 **/temporal
 **/*.exe
+
+# Runtime state — do NOT commit
+**/checkpoints.db
+**/sessions.json
