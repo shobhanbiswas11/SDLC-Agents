@@ -26,6 +26,7 @@ tools:
   - improve_documentation
   - git_push_token
   - git_push_ssh
+  - grep_search
 
 # System prompt template
 system_prompt: |

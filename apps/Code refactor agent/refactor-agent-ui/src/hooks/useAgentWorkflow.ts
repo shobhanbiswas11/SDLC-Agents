@@ -36,8 +36,8 @@ export function useAgentWorkflow() {
         return;
       }
       try {
-        const res = await axios.get(`${API_BASE}/api/workflows/${wfId}/status`, { timeout: 10000 });
-        const data = res.data.status;
+        const res = await axios.get(`${API_BASE}/sessions/${wfId}/status`, { timeout: 10000 });
+        const data = res.data;
         currentInterval = POLL_INTERVAL;
 
         if (data.waiting_for_user) {
@@ -78,16 +78,16 @@ export function useAgentWorkflow() {
     githubBranch: string
   ) => {
     try {
-      const res = await axios.post(`${API_BASE}/api/workflows`, {
-        agent_id: "refactoring-agent",
+      const res = await axios.post(`${API_BASE}/sessions`, {
         workspace_path: workspacePath,
         source_type: sourceType,
         github_url: sourceType === "github" ? githubUrl.trim() : null,
-        github_branch: sourceType === "github" && githubBranch.trim() ? githubBranch.trim() : null,
+        github_branch: sourceType === "github" && githubBranch.trim() ? githubBranch.trim() : "main",
       });
-      const wfId = res.data.workflow_id;
-      const resolvedWorkspace = res.data.workspace_path || workspacePath;
-      const sourceLabel = (res.data.source_type || sourceType) === "github" ? "GitHub" : "Local";
+      const wfId = res.data.session_id;
+      const resolvedWorkspace = res.data.workspace_path || (sourceType === "github" ? githubUrl : workspacePath);
+      const sourceLabel = sourceType === "github" ? "GitHub" : "Local";
+      
       setWorkflowId(wfId);
       setIsConnected(true);
       setSessionMeta({ id: wfId, source: sourceLabel, workspace: resolvedWorkspace });
@@ -100,7 +100,7 @@ export function useAgentWorkflow() {
     } catch (err: any) {
       setMessages([{
         role: "system",
-        content: `Connection failed: ${err.message}\n\nEnsure the backend API URL is reachable and Temporal is configured on the server.`,
+        content: `Connection failed: ${err.message}\n\nEnsure the backend API URL is reachable and the LangGraph server is running.`,
         timestamp: new Date(),
       }]);
       return false;
@@ -111,19 +111,26 @@ export function useAgentWorkflow() {
     if (!workflowId) return;
     setMessages(prev => [...prev, { role: "user", content: userMsg, timestamp: new Date() }]);
     setIsLoading(true);
+    
+    const isAnswer = waitingForUser;
     setWaitingForUser(false);
+    
     try {
-      await axios.post(`${API_BASE}/api/workflows/${workflowId}/messages`, { message: userMsg });
+      if (isAnswer) {
+        await axios.post(`${API_BASE}/sessions/${workflowId}/answer`, { answer: userMsg });
+      } else {
+        await axios.post(`${API_BASE}/sessions/${workflowId}/message`, { message: userMsg });
+      }
       startPolling(workflowId);
     } catch (err: any) {
       setMessages(prev => [...prev, { role: "system", content: `Send error: ${err.message}`, timestamp: new Date() }]);
       setIsLoading(false);
     }
-  }, [workflowId, startPolling]);
+  }, [workflowId, waitingForUser, startPolling]);
 
   const stopSession = useCallback(async () => {
     if (!workflowId) return;
-    try { await axios.delete(`${API_BASE}/api/workflows/${workflowId}`); } catch {}
+    try { await axios.delete(`${API_BASE}/sessions/${workflowId}`); } catch {}
     if (pollRef.current) clearTimeout(pollRef.current);
     setWorkflowId(null); setIsConnected(false);
     setIsLoading(false); setWaitingForUser(false);

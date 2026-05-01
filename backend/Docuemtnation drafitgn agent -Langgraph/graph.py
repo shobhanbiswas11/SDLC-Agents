@@ -45,24 +45,46 @@ class AgentState(TypedDict):
     created_files:      list[str]    # Files created this session (for frontend)
     pending_tool_calls: list[dict]   # Tool calls requested by LLM, pending execution
     context_gathered:   bool         # True after first-turn RAG has run (skip on follow-ups)
+    task_type:          str          # "qa" or "documentation"
+    current_plan:       str          # The numbered plan for documentation tasks
+    review_passed:      bool         # True once review_node approves the output
+    review_attempts:    int          # Counter to prevent infinite review loops
 
 
 # ── Routing Logic ─────────────────────────────────────────────────────────────
 
 def route_after_gather(state: AgentState) -> str:
-    """After gather_context_node, always go to llm_node."""
-    return "llm_node"
+    """After gather_context_node, always go to task_classifier_node."""
+    return "task_classifier_node"
 
+def route_after_classify(state: AgentState) -> str:
+    """Route based on whether the user wants Q&A or Documentation."""
+    if state.get("task_type") == "qa":
+        return "llm_node"
+    return "planning_node"
 
 def route_after_llm(state: AgentState) -> str:
     """
     After the LLM node runs, decide what to do next:
     - If the LLM requested tool calls → go to tool_node
-    - If the LLM gave a final text answer → END
+    - If task_type is documentation → go to review_node
+    - Otherwise (QA) → END
     """
     if state.get("pending_tool_calls"):
         return "tool_node"
+    if state.get("task_type") == "documentation":
+        return "review_node"
     return END
+
+def route_after_review(state: AgentState) -> str:
+    """
+    After review_node runs:
+    - If review passed (or max attempts reached) → END
+    - If review failed → back to llm_node to fix
+    """
+    if state.get("review_passed"):
+        return END
+    return "llm_node"
 
 
 import re as _re
@@ -91,7 +113,7 @@ def route_entry(state: AgentState) -> str:
     if latest_query and _REINDEX_PATTERNS.search(latest_query):
         print("[graph] Re-index trigger detected — re-running RAG.")
         return "gather_context_node"
-    return "llm_node"
+    return "task_classifier_node"
 
 
 # ── Graph Builder ─────────────────────────────────────────────────────────────
@@ -111,43 +133,73 @@ def build_graph() -> Any:
     NOTE: In LangGraph 1.x, SqliteSaver requires a raw sqlite3 connection
     instance. check_same_thread=False allows use from the FastAPI async event loop.
     """
-    from agent_node import gather_context_node, llm_node, tool_node
+    from agent_node import (
+        gather_context_node,
+        task_classifier_node,
+        planning_node,
+        llm_node,
+        tool_node,
+        review_node
+    )
 
     builder = StateGraph(AgentState)
 
     # Register nodes
-    builder.add_node("gather_context_node", gather_context_node)
-    builder.add_node("llm_node",            llm_node)
-    builder.add_node("tool_node",           tool_node)
+    builder.add_node("gather_context_node",  gather_context_node)
+    builder.add_node("task_classifier_node", task_classifier_node)
+    builder.add_node("planning_node",        planning_node)
+    builder.add_node("llm_node",             llm_node)
+    builder.add_node("tool_node",            tool_node)
+    builder.add_node("review_node",          review_node)
 
     # Entry point — route based on whether context has been gathered
     builder.set_conditional_entry_point(
         route_entry,
         {
-            "gather_context_node": "gather_context_node",
-            "llm_node":            "llm_node",
+            "gather_context_node":  "gather_context_node",
+            "task_classifier_node": "task_classifier_node",
         }
     )
 
-    # After gather_context → always llm_node
+    # gather_context → task_classifier
+    builder.add_edge("gather_context_node", "task_classifier_node")
+
+    # task_classifier → planning OR llm
     builder.add_conditional_edges(
-        "gather_context_node",
-        route_after_gather,
-        {"llm_node": "llm_node"},
+        "task_classifier_node",
+        route_after_classify,
+        {
+            "llm_node":      "llm_node",
+            "planning_node": "planning_node",
+        }
     )
 
-    # After LLM: either call a tool or finish
+    # planning → llm
+    builder.add_edge("planning_node", "llm_node")
+
+    # After LLM: either call a tool, go to review, or finish
     builder.add_conditional_edges(
         "llm_node",
         route_after_llm,
         {
-            "tool_node": "tool_node",
-            END:         END,
+            "tool_node":   "tool_node",
+            "review_node": "review_node",
+            END:           END,
         }
     )
 
     # After tool execution: always loop back to LLM
     builder.add_edge("tool_node", "llm_node")
+
+    # After review: either finish or loop back to LLM to fix issues
+    builder.add_conditional_edges(
+        "review_node",
+        route_after_review,
+        {
+            "llm_node": "llm_node",
+            END:        END,
+        }
+    )
 
     # Pass raw sqlite3 connection — required in LangGraph 1.x
     conn   = sqlite3.connect(DB_PATH, check_same_thread=False)

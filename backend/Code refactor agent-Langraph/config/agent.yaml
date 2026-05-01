@@ -9,12 +9,14 @@ tools:
   - analyze_code
   - suggest_refactor
   - apply_refactor
+  - apply_batch_refactor
   - diff_preview
   - run_tests
   - read_file
   - write_file
   - list_files
   - search_code
+  - find_references
   - multi_refactor
   - terminal_command
   - ask_user

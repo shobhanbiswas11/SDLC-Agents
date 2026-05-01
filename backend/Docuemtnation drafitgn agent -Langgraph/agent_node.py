@@ -341,6 +341,235 @@ async def gather_context_node(state: dict) -> dict:
     }
 
 
+# ── Task Classifier Node ───────────────────────────────────────────────────────
+
+async def task_classifier_node(state: dict) -> dict:
+    """
+    Classify the user's latest message as either:
+      - 'qa'            → a question about the codebase (explain a file, how does X work, etc.)
+      - 'documentation' → a request to write/create documentation
+
+    Q&A tasks bypass planning and review entirely — the llm_node will use
+    the read_file tool automatically and answer directly.
+
+    Documentation tasks go through planning_node → llm_node ↔ tool_node → review_node.
+    """
+    history = list(state.get("history", []))
+
+    # Extract latest user message
+    query = ""
+    for msg in reversed(history):
+        if msg.get("role") == "user":
+            query = msg.get("content", "")
+            break
+
+    if not query:
+        return {**state, "task_type": "qa", "status": "thinking"}
+
+    classifier_prompt = (
+        "You are a task classifier for a Documentation Drafting AI Agent.\n"
+        "Classify the user's message into EXACTLY one of two categories:\n\n"
+        "  'DOCUMENTATION' — the user wants you to CREATE, WRITE, or GENERATE documentation files "
+        "(e.g. README, API docs, changelogs, wikis, docstrings).\n\n"
+        "  'QA' — the user is asking a QUESTION about the codebase "
+        "(e.g. explain a file, describe a function, summarize a module, answer how something works).\n\n"
+        "Output ONLY the single word 'DOCUMENTATION' or 'QA'. Output nothing else."
+    )
+
+    task_type = "qa"  # safe default
+    try:
+        from google import genai as _sdk
+        _genai_key = os.getenv("GEMINI_API_KEY", "")
+        if _genai_key:
+            _gclient      = _sdk.Client(api_key=_genai_key)
+            _model        = os.getenv("GEMINI_CHAT_MODEL", "gemini-2.0-flash")
+            _resp         = _gclient.models.generate_content(
+                model=_model,
+                contents=query,
+                config={"system_instruction": classifier_prompt, "temperature": 0, "max_output_tokens": 5},
+            )
+            raw = _resp.text.strip().upper()
+        else:
+            sync_client = _get_sync_openai_client()
+            chat_dep    = os.getenv("AZURE_OPENAI_CHATGPT_DEPLOYMENT") or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
+            _r = sync_client.chat.completions.create(
+                model=chat_dep,
+                messages=[
+                    {"role": "system", "content": classifier_prompt},
+                    {"role": "user",   "content": query},
+                ],
+                temperature=0, max_tokens=5,
+            )
+            raw = _r.choices[0].message.content.strip().upper()
+
+        task_type = "documentation" if "DOCUMENTATION" in raw else "qa"
+        print(f"[task_classifier] '{query[:60]}...' → {task_type.upper()}")
+
+    except Exception as e:
+        print(f"[task_classifier] Classification failed ({e}), defaulting to QA.")
+
+    return {**state, "task_type": task_type, "status": "thinking"}
+
+
+# ── Planning Node ──────────────────────────────────────────────────────────────
+
+async def planning_node(state: dict) -> dict:
+    """
+    For DOCUMENTATION tasks only.
+
+    Forces the LLM to produce a clear numbered plan of what it will document
+    BEFORE it starts writing anything. The plan is saved to state['current_plan']
+    and injected as a system message so the llm_node always has it in context.
+
+    This prevents the agent from producing disorganized or incomplete documentation
+    by giving it an explicit checklist to follow.
+    """
+    client     = _get_openai_client()
+    deployment = (
+        os.getenv("AZURE_OPENAI_CHATGPT_DEPLOYMENT")
+        or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
+    )
+
+    history = list(state.get("history", []))
+    trimmed = _trim_history(history)
+
+    # Inject a one-shot planning instruction as a temporary system message
+    planning_instruction = {
+        "role": "system",
+        "content": (
+            "PLANNING PHASE — Do NOT write any documentation yet.\n"
+            "Based on the codebase context and the user's request, output a clear numbered plan:\n"
+            "  1. List every documentation file you will create (with filename and purpose).\n"
+            "  2. List every major section each file will contain.\n"
+            "  3. Note any files you need to read first before writing.\n"
+            "Be specific and concrete. Output ONLY the plan, nothing else."
+        ),
+    }
+    messages_for_planning = trimmed + [planning_instruction]
+
+    plan_text = ""
+    try:
+        response = await client.chat.completions.create(
+            model=deployment,
+            messages=messages_for_planning,
+            temperature=0.2,
+            max_completion_tokens=2000,
+            timeout=60,
+        )
+        plan_text = response.choices[0].message.content or ""
+        print(f"[planning_node] Plan generated ({len(plan_text)} chars).")
+    except Exception as e:
+        plan_text = f"(Planning failed: {e}. Proceed with best effort.)"
+        print(f"[planning_node] Planning LLM call failed: {e}")
+
+    # Inject the plan as a system message so llm_node always sees it
+    plan_injection = {
+        "role":    "system",
+        "content": f"DOCUMENTATION PLAN (follow this exactly):\n{plan_text}",
+    }
+    updated_history = history + [plan_injection]
+
+    return {
+        **state,
+        "current_plan":   plan_text,
+        "history":        updated_history,
+        "status":         "thinking",
+    }
+
+
+# ── Review Node ────────────────────────────────────────────────────────────────
+
+async def review_node(state: dict) -> dict:
+    """
+    For DOCUMENTATION tasks only.
+
+    Acts as a self-editor: reviews the agent's last_response and the list
+    of created_files to check for quality issues.
+
+    If issues are found AND review_attempts < 2:
+      - Appends a critique as a new user message so llm_node can fix it.
+      - Sets review_passed = False.
+
+    If the output is good OR review_attempts >= 2 (safety cap):
+      - Sets review_passed = True → graph routes to END.
+    """
+    MAX_REVIEW_ATTEMPTS = 2
+
+    client     = _get_openai_client()
+    deployment = (
+        os.getenv("AZURE_OPENAI_CHATGPT_DEPLOYMENT")
+        or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
+    )
+
+    history         = list(state.get("history", []))
+    last_response   = state.get("last_response", "")
+    created_files   = state.get("created_files", [])
+    current_plan    = state.get("current_plan", "")
+    review_attempts = int(state.get("review_attempts", 0)) + 1
+
+    print(f"[review_node] Attempt {review_attempts}/{MAX_REVIEW_ATTEMPTS}")
+
+    # Safety cap — never loop more than MAX_REVIEW_ATTEMPTS times
+    if review_attempts > MAX_REVIEW_ATTEMPTS:
+        print("[review_node] Max attempts reached — accepting output.")
+        return {**state, "review_passed": True, "review_attempts": review_attempts}
+
+    review_prompt = (
+        "You are a strict technical documentation reviewer.\n"
+        "Review the agent's work and output ONLY one of two responses:\n\n"
+        "  'APPROVED' — if the documentation is complete, well-structured, and covers all planned sections.\n\n"
+        "  'REVISION NEEDED: <specific critique>' — if there are concrete issues such as:\n"
+        "    - Missing sections from the plan\n"
+        "    - Broken Markdown formatting\n"
+        "    - Incomplete function/class documentation\n"
+        "    - Files mentioned in the plan that were not created\n\n"
+        f"Original plan:\n{current_plan or 'No plan available.'}\n\n"
+        f"Files created: {created_files or 'None'}\n\n"
+        f"Agent's last response:\n{last_response[:3000] if last_response else 'No response.'}\n\n"
+        "Output ONLY 'APPROVED' or 'REVISION NEEDED: <critique>'."
+    )
+
+    review_result = "APPROVED"
+    try:
+        response = await client.chat.completions.create(
+            model=deployment,
+            messages=[{"role": "user", "content": review_prompt}],
+            temperature=0,
+            max_completion_tokens=500,
+            timeout=60,
+        )
+        review_result = response.choices[0].message.content.strip()
+        print(f"[review_node] Result: {review_result[:100]}")
+    except Exception as e:
+        print(f"[review_node] Review LLM call failed ({e}), auto-approving.")
+        review_result = "APPROVED"
+
+    if review_result.upper().startswith("APPROVED"):
+        return {
+            **state,
+            "review_passed":   True,
+            "review_attempts": review_attempts,
+        }
+    else:
+        # Append the critique as a new user message so llm_node picks it up
+        critique = review_result.replace("REVISION NEEDED:", "").strip()
+        updated_history = history + [{
+            "role":    "user",
+            "content": (
+                f"⚠️ Review found issues with your documentation. Please fix the following:\n\n"
+                f"{critique}\n\n"
+                "Refer to the original plan above and make sure all sections are complete."
+            ),
+        }]
+        return {
+            **state,
+            "review_passed":   False,
+            "review_attempts": review_attempts,
+            "history":         updated_history,
+            "status":          "thinking",
+        }
+
+
 # ── LLM Node ──────────────────────────────────────────────────────────────────
 
 async def llm_node(state: dict) -> dict:

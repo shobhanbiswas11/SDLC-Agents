@@ -692,6 +692,49 @@ async def handle_replace_code(file_path: str, replacements: str, workspace_path:
     return {"status": "success", "message": f"Successfully applied {len(blocks)} replacement(s) to '{path.name}'."}
 
 # ──────────────────────────────────────────────
+# GREP SEARCH
+# ──────────────────────────────────────────────
+
+async def handle_grep_search(pattern: str, directory: str = ".", file_pattern: str = "*.py",
+                             context_lines: int = 2, workspace_path: str = ".", **_) -> dict:
+    """Search for a regex pattern in files within the workspace."""
+    try:
+        search_dir = _safe_path(directory, workspace_path)
+    except ValueError as e:
+        return {"status": "error", "error": str(e)}
+    if not search_dir.exists():
+        return {"status": "error", "error": f"Directory not found: {search_dir}"}
+
+    try:
+        compiled = re.compile(pattern)
+    except re.error as e:
+        return {"status": "error", "error": f"Invalid regex pattern: {e}"}
+
+    matches = []
+    for file_path in sorted(search_dir.rglob(file_pattern)):
+        if not file_path.is_file():
+            continue
+        try:
+            lines = file_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        except (OSError, UnicodeDecodeError):
+            continue
+        for i, line in enumerate(lines):
+            if compiled.search(line):
+                start = max(0, i - context_lines)
+                end = min(len(lines), i + context_lines + 1)
+                context = lines[start:end]
+                matches.append({
+                    "file": str(file_path.relative_to(Path(workspace_path).resolve())),
+                    "line": i + 1,
+                    "context": "\n".join(context),
+                })
+        if len(matches) >= 50:
+            break
+
+    return {"status": "success", "matches": matches, "total": len(matches)}
+
+
+# ──────────────────────────────────────────────
 # TOOL DISPATCH TABLE
 # Maps tool name (as defined in YAML filenames) -> handler function
 # IMPORTANT: these keys must match the 'name:' field in each config/tools/*.yaml file
@@ -717,4 +760,5 @@ TOOL_HANDLERS = {
     "improve_documentation": handle_improve_documentation,
     "git_push_ssh": handle_git_push_ssh,
     "git_push_token": handle_git_push_token,
+    "grep_search": handle_grep_search,
 }
