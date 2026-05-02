@@ -169,13 +169,28 @@ async def handle_github_put_file(
 
     # Resolve staged content if requested
     staging_file: Path | None = None
+    content_source = "provided"
     if content == "staged" or not (content or "").strip():
         stem = Path(repo_file_path).stem
         suffix = Path(repo_file_path).suffix
         staging_file = Path(workspace_path) / ".refactor_staging" / f"{stem}_staged{suffix}"
-        if not staging_file.exists():
-            return {"status": "error", "error": "No staged refactoring found. Call suggest_refactor first."}
-        content = staging_file.read_text(encoding="utf-8")
+        if staging_file.exists():
+            content = staging_file.read_text(encoding="utf-8")
+            content_source = "staged"
+        elif resolved_file is not None and resolved_file.exists():
+            # apply_refactor consumes/deletes the staged file after writing to disk.
+            # In that normal flow, push the already-applied local file content.
+            content = resolved_file.read_text(encoding="utf-8")
+            content_source = "applied_file"
+        else:
+            return {
+                "status": "error",
+                "error": (
+                    "No staged refactoring found and the target file could not be resolved "
+                    "from the workspace. Call suggest_refactor/apply_refactor first, or pass "
+                    "explicit content to github_put_file."
+                ),
+            }
 
     # Parse owner/repo from the URL
     norm = normalize_github_repo_url(repo_url)
@@ -225,7 +240,7 @@ async def handle_github_put_file(
     try:
         with urllib.request.urlopen(put_req, timeout=30) as resp:
             result_data = _json.loads(resp.read().decode("utf-8"))
-        if staging_file is not None:
+        if staging_file is not None and content_source == "staged":
             staging_file.unlink(missing_ok=True)
         commit_info = result_data.get("commit", {})
         logger.info("github_put_file: pushed %s/%s/%s", owner, repo, api_path)
@@ -235,6 +250,7 @@ async def handle_github_put_file(
             "commit_sha": commit_info.get("sha", ""),
             "commit_url": commit_info.get("html_url", ""),
             "file_url": result_data.get("content", {}).get("html_url", ""),
+            "content_source": content_source,
         }
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""

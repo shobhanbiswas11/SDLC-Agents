@@ -448,6 +448,7 @@ def validate_semantic_safety(original: str, candidate: str, file_suffix: str, po
     if guard.get("protect_imports", True):
         old_imports = _extract_import_lines(original, file_suffix)
         new_imports = _extract_import_lines(candidate, file_suffix)
+        # Only flag removed imports — adding new imports (e.g. logging, typing) is safe.
         removed_imports = sorted(old_imports - new_imports)
         if removed_imports:
             violations.append(f"imports removed={removed_imports[:8]}")
@@ -457,7 +458,10 @@ def validate_semantic_safety(original: str, candidate: str, file_suffix: str, po
         new_exports = _extract_export_names(candidate, file_suffix)
         removed_exports = sorted(old_exports - new_exports)
         added_exports = sorted(new_exports - old_exports)
-        if removed_exports or added_exports:
+        # For Python files, adding new functions/methods is always safe (callers are unaffected).
+        # Only removals or renames of existing names can break existing callers.
+        is_python = file_suffix.lower() == ".py"
+        if removed_exports or (added_exports and not is_python):
             violations.append(
                 "export names changed"
                 + (f"; removed={removed_exports}" if removed_exports else "")

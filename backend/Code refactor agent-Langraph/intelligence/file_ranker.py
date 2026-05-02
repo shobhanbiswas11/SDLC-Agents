@@ -3,9 +3,41 @@ import pathlib
 from collections import defaultdict, Counter
 from typing import Dict, List, Tuple, Set
 
-SKIP_DIRS = {"tests", "test", "__pycache__", "node_modules", "dist", "build"}
-IMPORTANT_DIRS = {"src", "app", "api", "routes", "services", "controllers", "models", "lib", "server"}
-ENTRY_STEMS = {"main", "app", "server", "index", "cli", "manage", "run"}
+SKIP_DIRS = {
+    "tests", "test", "__pycache__", "node_modules", "dist", "build",
+    ".git", ".github", ".vscode", ".idea",
+    "coverage", ".coverage",
+    "venv", ".venv", "env",
+    "logs", "tmp", "temp",
+    "cache", ".cache",
+    "out", "target", "bin", "obj",
+    "public/build", ".next", ".nuxt",
+    "migrations/versions"
+}
+
+IMPORTANT_DIRS = {
+    "src", "app", "api", "routes", "services", "controllers", "models",
+    "lib", "server", "core", "config",
+    "utils", "helpers", "middleware",
+    "components", "hooks", "store",
+    "views", "pages", "templates",
+    "static", "public", "assets",
+    "schemas", "validators",
+    "repositories", "db", "database",
+    "workers", "jobs", "tasks",
+    "graphql", "resolvers",
+    "plugins", "extensions"
+}
+
+ENTRY_STEMS = {
+    "main", "app", "server", "index", "cli", "manage", "run",
+    "start", "boot", "init", "entry",
+    "wsgi", "asgi",
+    "application",
+    "dev", "prod",
+    "worker",
+    "script"
+}
 
 def _depth_penalty(path: str) -> int:
     return len(path.split("/")) - 1

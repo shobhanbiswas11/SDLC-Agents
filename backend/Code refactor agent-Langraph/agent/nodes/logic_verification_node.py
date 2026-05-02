@@ -29,7 +29,7 @@ _CODE_MODIFYING_TOOLS = {
     "write_file",
     "github_put_file",
 }
-_REVIEWER_HISTORY_WINDOW = 30
+_REVIEWER_HISTORY_WINDOW = 60
 
 _REVIEWER_SYSTEM_PROMPT = (
     "You are a Senior QA Engineer and Code Reviewer.\n"
@@ -37,10 +37,15 @@ _REVIEWER_SYSTEM_PROMPT = (
     "logic or business rules of the code.\n"
     "Refactoring should only improve structure, readability, performance, or apply "
     "design patterns. It MUST NOT break existing functionality or alter external interfaces.\n\n"
-    "Review the recent tool calls and code changes.\n"
+    "Review ALL tool calls and code changes in the conversation — there may be changes "
+    "across multiple files. For each file changed, verify:\n"
+    "  1. Function signatures visible to callers are unchanged.\n"
+    "  2. Return values and side-effects are identical.\n"
+    "  3. No cross-file dependencies (imports, shared interfaces) are broken.\n\n"
     "Output EXACTLY one of two responses:\n"
-    "  'APPROVED' — if the external logic is safely preserved.\n"
-    "  'REJECTED: <specific reason>' — if business logic was fundamentally altered or broken."
+    "  'APPROVED' — if the external logic is safely preserved across all files.\n"
+    "  'REJECTED: <specific reason and which file(s) are affected>' — if business logic "
+    "was fundamentally altered or broken in any file."
 )
 
 
@@ -115,7 +120,7 @@ async def logic_verification_node(state: AgentState) -> dict:
             model=deployment,
             messages=messages,
             temperature=0,
-            max_completion_tokens=500,
+            max_completion_tokens=1000,
             timeout=60,
         )
         result = response.choices[0].message.content.strip()

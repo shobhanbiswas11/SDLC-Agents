@@ -58,7 +58,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Code Refactor Agent — LangGraph",
     description="AI-powered code refactoring agent. No Temporal server required.",
-    version="2.1.0",
     lifespan=lifespan,
 )
 
