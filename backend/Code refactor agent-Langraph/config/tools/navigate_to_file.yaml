@@ -1,0 +1,19 @@
+# Navigate To File Tool
+name: navigate_to_file
+description: >
+  Navigate to (open) a specific file in the user's code viewer.
+  Use this when the user says "go to X", "open X", "show me X", or "navigate to X".
+  The file will be resolved recursively in the workspace — just pass the filename or relative path.
+  This does NOT modify any file, it only signals the UI to display it.
+ 
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: >
+        Filename or relative path to navigate to (e.g. "Remarks.jsx" or "frontend/components/Remarks.jsx").
+        The backend will find it recursively in the workspace.
+  required:
+    - file_path
+ 

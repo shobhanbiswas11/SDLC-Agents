@@ -1,0 +1,33 @@
+# Virtual environments
+venv/
+venvvv/
+.venv/
+env/
+
+# Environment secrets
+.env
+
+# Runtime state
+checkpoints.db
+*.db
+sessions.json
+.refactor_history.json
+.refactor_repos/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Logs
+logs/
+*.log
+
+# IDE / OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

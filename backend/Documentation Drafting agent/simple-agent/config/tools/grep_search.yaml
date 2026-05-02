@@ -1,0 +1,33 @@
+# Grep Search Tool
+# Search for patterns in files using regex
+
+name: grep_search
+description: Search for a pattern in files using regex. Returns matching lines with context.
+
+parameters:
+  type: object
+  properties:
+    pattern:
+      type: string
+      description: Regex pattern to search for
+    directory:
+      type: string
+      description: "Directory to search in (default: current directory)"
+      default: "."
+    file_pattern:
+      type: string
+      description: "Glob pattern for files to search (default: *.py)"
+      default: "*.py"
+    context_lines:
+      type: integer
+      description: "Number of context lines before and after match (default: 2)"
+      default: 2
+  required:
+    - pattern
+
+activity:
+  name: grep_search_activity
+  timeout_seconds: 60
+  retry_policy:
+    max_attempts: 2
+    initial_interval_seconds: 1

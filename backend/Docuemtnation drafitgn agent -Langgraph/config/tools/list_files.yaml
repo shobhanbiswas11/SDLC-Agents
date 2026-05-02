@@ -1,0 +1,25 @@
+# List Files Tool
+# Lists files in a directory matching a pattern
+
+name: list_files
+description: List files in a directory matching a glob pattern.
+
+parameters:
+  type: object
+  properties:
+    directory:
+      type: string
+      description: "Directory to search (default: current directory)"
+      default: "."
+    pattern:
+      type: string
+      description: "Glob pattern to match files (default: *.py)"
+      default: "*"
+  required: []
+
+activity:
+  name: list_files_activity
+  timeout_seconds: 30
+  retry_policy:
+    max_attempts: 3
+    initial_interval_seconds: 1

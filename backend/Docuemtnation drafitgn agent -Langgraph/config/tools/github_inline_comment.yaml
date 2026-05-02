@@ -1,0 +1,61 @@
+# GitHub Inline Comment Tool
+# Reads a source file from local workspace or directly from GitHub,
+# generates inline comments via Azure OpenAI, and writes the result back.
+
+name: github_inline_comment
+description: |
+  Perform file operations on a source code file using AI. Supported actions:
+  - 'read': fetch and return the raw file contents.
+  - 'list': list the contents of a directory in the repository.
+  - 'summarize': read the file and provide a summary of its contents based on the given prompt.
+  - 'update': modify the file according to instructions in the prompt.
+  - 'comment': add inline comments to the file.
+  - 'remove': strip all existing comments.
+  - 'create': Create a completely new file on Github. Pass the full file contents into the `prompt`.
+  Supports reading from local workspace OR directly from a GitHub repository.
+  Writes the file back and auto-pushes to GitHub (if source is github) for actions: comment, remove, update, create.
+  Use this when asked to "list files", "read a file", "summarize code", "comment a file", "document code", "remove comments", "create a file", or "update/fix code".
+
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: |
+        Path to the file to comment.
+        - If source="local": relative path from workspace root (e.g. "backend/app.js")
+        - If source="github": path inside the repo (e.g. "backend/doctor_signup_router.js")
+    action:
+      type: string
+      description: "The operation to perform on the file or directory."
+      enum: [comment, remove, read, summarize, update, list, create]
+      default: read
+    prompt:
+      type: string
+      description: "Instructions for what to summarize or how to update the file (required for 'summarize' or 'update' actions)."
+      default: ""
+    source:
+      type: string
+      description: Where to read the file from. Use "local" for files in the workspace, "github" to fetch directly from a GitHub repo.
+      enum: [local, github]
+      default: local
+    github_repo:
+      type: string
+      description: GitHub repository in "owner/repo" format. Required when source="github".
+      default: ""
+    github_token:
+      type: string
+      description: GitHub personal access token for private repos. Omit for public repos (uses GITHUB_TOKEN env var as fallback).
+      default: ""
+  required:
+    - file_path
+    - source
+    - github_repo
+
+# Temporal activity settings
+activity:
+  name: github_inline_comment_activity
+  timeout_seconds: 120
+  retry_policy:
+    max_attempts: 2
+    initial_interval_seconds: 5

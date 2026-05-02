@@ -1,0 +1,65 @@
+services:
+
+  refactor-api:
+    build:
+      context: ../..
+      dockerfile: "infra/Code refactor agent/Dockerfile"
+    container_name: refactor-api
+    working_dir: /workspace/backend/Code refactor agent/refactor-agent
+    environment:
+      PORT: 8002
+      TEMPORAL_ADDRESS: "${TEMPORAL_ADDRESS:?Set Temporal Cloud endpoint, e.g. your-namespace.tmprl.cloud:7233}"
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:-}
+      TEMPORAL_TLS: ${TEMPORAL_TLS:-true}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2025-01-01-preview}
+      AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-gpt-4o}
+      AZURE_OPENAI_CHATGPT_DEPLOYMENT: ${AZURE_OPENAI_CHATGPT_DEPLOYMENT:-gpt-4o}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID:-}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
+    volumes:
+      - ../../:/workspace
+    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8002"]
+    ports:
+      - "${API_HOST_PORT:-8002}:8002"
+    restart: unless-stopped
+
+  refactor-worker:
+    build:
+      context: ../..
+      dockerfile: "infra/Code refactor agent/worker.Dockerfile"
+    container_name: refactor-worker
+    working_dir: /workspace/backend/Code refactor agent/refactor-agent
+    environment:
+      TEMPORAL_ADDRESS: "${TEMPORAL_ADDRESS:?Set Temporal Cloud endpoint, e.g. your-namespace.tmprl.cloud:7233}"
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_API_KEY: ${TEMPORAL_API_KEY:-}
+      TEMPORAL_TLS: ${TEMPORAL_TLS:-true}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2025-01-01-preview}
+      AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-gpt-4o}
+      AZURE_OPENAI_CHATGPT_DEPLOYMENT: ${AZURE_OPENAI_CHATGPT_DEPLOYMENT:-gpt-4o}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID:-}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
+    volumes:
+      - ../../:/workspace
+    command: ["python", "worker.py"]
+    restart: unless-stopped
+
+  refactor-ui:
+    build:
+      context: ../..
+      dockerfile: "infra/Code refactor agent/ui.Dockerfile"
+    container_name: refactor-ui
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:${API_HOST_PORT:-8002}
+    ports:
+      - "${UI_HOST_PORT:-3001}:3001"
+    depends_on:
+      - refactor-api
+

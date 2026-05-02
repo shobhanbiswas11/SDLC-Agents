@@ -1,0 +1,27 @@
+name: suggest_refactor
+description: >
+  Generate a refactored version of a file that fixes ALL specified code smells in one pass.
+  The refactored code is staged automatically — call diff_preview then apply_refactor to apply it.
+  smell_type may be a comma-separated list (e.g. "magic_numbers,duplicate_code,long_method").
+
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: Path to the file to refactor (relative to workspace root or absolute)
+    smell_type:
+      type: string
+      description: Comma-separated list of code smell types to fix (e.g. "long_method,magic_numbers,deep_nesting")
+    description:
+      type: string
+      description: Optional extra description or context for the refactor
+    instruction:
+      type: string
+      description: Optional additional instruction for the LLM refactoring step
+    lines:
+      type: string
+      description: Optional line range hint for where the smell is (e.g. "10-45")
+  required:
+    - file_path
+    - smell_type

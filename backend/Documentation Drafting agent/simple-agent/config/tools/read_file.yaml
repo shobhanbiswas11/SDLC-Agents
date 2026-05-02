@@ -1,0 +1,22 @@
+# Read File Tool
+# Reads file contents with line numbers
+
+name: read_file
+description: Read a file from the workspace. Returns content with line numbers.
+
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: Path to the file (relative to workspace root or absolute path)
+  required:
+    - file_path
+
+# Temporal activity settings
+activity:
+  name: read_file_activity
+  timeout_seconds: 30
+  retry_policy:
+    max_attempts: 3
+    initial_interval_seconds: 1

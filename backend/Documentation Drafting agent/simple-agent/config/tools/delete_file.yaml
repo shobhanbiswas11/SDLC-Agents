@@ -1,0 +1,21 @@
+# Delete File Tool
+# Deletes a file from the filesystem
+
+name: delete_file
+description: Delete a file from the filesystem. Use with caution.
+
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: Path to the file to delete
+  required:
+    - file_path
+
+activity:
+  name: delete_file_activity
+  timeout_seconds: 30
+  retry_policy:
+    max_attempts: 2
+    initial_interval_seconds: 1

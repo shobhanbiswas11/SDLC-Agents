@@ -1,0 +1,21 @@
+# Ask User Tool
+# Request input or confirmation from the user
+
+name: ask_user
+description: Ask the user a question and wait for their response. Use this when you need clarification, confirmation before making changes, or additional information.
+
+parameters:
+  type: object
+  properties:
+    question:
+      type: string
+      description: The question to ask the user
+    options:
+      type: array
+      description: Optional list of choices for the user (e.g., ["yes", "no", "skip"])
+      items:
+        type: string
+  required:
+    - question
+
+builtin: true

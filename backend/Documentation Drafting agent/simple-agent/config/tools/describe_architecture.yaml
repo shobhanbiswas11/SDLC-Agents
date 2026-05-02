@@ -1,0 +1,18 @@
+name: describe_architecture
+description: Analyze core system files to determine the high-level architecture pattern and describe it comprehensively.
+
+parameters:
+  type: object
+  properties:
+    workspace_path:
+      type: string
+      description: Path to the workspace or entrypoint of the system architecture.
+  required:
+    - workspace_path
+
+activity:
+  name: describe_architecture_activity
+  timeout_seconds: 60
+  retry_policy:
+    max_attempts: 2
+    initial_interval_seconds: 1

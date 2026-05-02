@@ -1,0 +1,25 @@
+# Core Temporal SDK
+temporalio>=1.7.0
+
+# Azure OpenAI
+openai>=1.30.0
+azure-identity>=1.16.0
+
+# CLI Rich UI
+rich>=13.0.0
+
+# Configuration
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+
+# Token counting (for context trimming)
+tiktoken>=0.7.0
+
+# Semantic safety — optional JS AST parsing (gracefully skipped if absent)
+esprima>=4.0.1
+
+# Tree-sitter AST skeleton generation (optional, gracefully skipped if absent)
+tree-sitter>=0.21.0
+tree-sitter-python>=0.21.0
+tree-sitter-javascript>=0.21.0
+tree-sitter-typescript>=0.21.0

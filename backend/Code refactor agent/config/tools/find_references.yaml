@@ -1,0 +1,22 @@
+name: find_references
+description: >
+  Find every file that imports, references, or calls a given symbol (class, function, variable).
+  Uses Python AST analysis for .py files and regex for JS/TS files.
+  Returns a list of dependent files and the specific lines where the symbol appears.
+  Use this BEFORE multi-file refactoring to discover which files need coordinated updates.
+parameters:
+  type: object
+  properties:
+    symbol:
+      type: string
+      description: "The name of the class, function, or variable to find references for."
+    file_pattern:
+      type: string
+      description: "Glob pattern to filter files (e.g. '*.py', '*.js'). Default: all supported files."
+      default: "*"
+    max_results:
+      type: integer
+      description: "Maximum number of reference lines to return per file. Default: 20."
+      default: 20
+  required:
+    - symbol

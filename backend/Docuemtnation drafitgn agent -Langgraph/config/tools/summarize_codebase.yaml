@@ -1,0 +1,18 @@
+name: summarize_codebase
+description: Provide an aggregated, high-level summary of the entire repository by analyzing package configurations and top-level elements.
+
+parameters:
+  type: object
+  properties:
+    workspace_path:
+      type: string
+      description: The root path of the project.
+  required:
+    - workspace_path
+
+activity:
+  name: summarize_codebase_activity
+  timeout_seconds: 60
+  retry_policy:
+    max_attempts: 2
+    initial_interval_seconds: 1

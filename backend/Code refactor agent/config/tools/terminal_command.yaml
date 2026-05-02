@@ -1,0 +1,18 @@
+name: terminal_command
+description: >
+  Execute a shell command in the workspace.
+  Returns the stdout, stderr, and return code.
+  Use this for environment setup, running scripts, or advanced file operations.
+  ALWAYS explain what the command does before running it.
+parameters:
+  type: object
+  properties:
+    command:
+      type: string
+      description: "The shell command to execute."
+    explanation:
+      type: string
+      description: "A brief explanation of what the command does and why it is being run."
+  required:
+    - command
+    - explanation

@@ -1,0 +1,25 @@
+# Write File Tool
+# Writes content to a file
+
+name: write_file
+description: Write content to a file. Creates parent directories if needed.
+
+parameters:
+  type: object
+  properties:
+    file_path:
+      type: string
+      description: Path to the file (relative to workspace root or absolute path)
+    content:
+      type: string
+      description: The complete content to write to the file
+  required:
+    - file_path
+    - content
+
+activity:
+  name: write_file_activity
+  timeout_seconds: 30
+  retry_policy:
+    max_attempts: 3
+    initial_interval_seconds: 1
