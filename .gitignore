@@ -1,0 +1,31 @@
+# Node / Next.js
+node_modules
+.next
+out
+dist
+
+# Python
+__pycache__
+*.pyc
+.venv
+venv
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# OS
+.DS_Store
+
+# Secrets
+.env
+.env.*
+*.env
+*.env.*
+.envrc
+
+# Build / runtime artifacts
+build
+coverage
+*.log
+state/
+logs/

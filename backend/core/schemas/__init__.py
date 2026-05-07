@@ -1,0 +1,1 @@
+"""Common cross-agent schemas."""
