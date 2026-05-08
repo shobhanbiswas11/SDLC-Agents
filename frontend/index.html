@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dependency Resolver Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest"></script>
+    <style>
+        :root {
+            --primary-color: #009eda;
+            --primary-light: #e8f7fd;
+            --primary-dark: #006fa8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body.light-theme {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+
+        body.dark-theme {
+            background-color: #0d1117;
+            color: #e6edf3;
+        }
+
+        .primary-bg {
+            background-color: var(--primary-color);
+        }
+
+        .primary-text {
+            color: var(--primary-color);
+        }
+
+        .primary-border {
+            border-color: var(--primary-color);
+        }
+
+        .primary-hover:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .card-light {
+            background-color: #f5f5f5;
+            border-color: #e0e0e0;
+        }
+
+        .card-dark {
+            background-color: #161b22;
+            border-color: #30363d;
+        }
+
+        .input-light {
+            background-color: #ffffff;
+            border-color: #d0d0d0;
+            color: #1a1a1a;
+        }
+
+        .input-dark {
+            background-color: #0d1117;
+            border-color: #30363d;
+            color: #e6edf3;
+        }
+
+        .text-light {
+            color: #666666;
+        }
+
+        .text-dark {
+            color: #8b949e;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        .animate-pulse-custom {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .badge-success-light {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .badge-success-dark {
+            background-color: #0d3b1a;
+            color: #5ee7a6;
+        }
+
+        .badge-error-light {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-error-dark {
+            background-color: #3d1e1e;
+            color: #ff7675;
+        }
+
+        .badge-warning-light {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-warning-dark {
+            background-color: #3d2e1a;
+            color: #ffb84d;
+        }
+    </style>
+</head>
+<body class="light-theme">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Get theme from URL or localStorage
+        function getTheme() {
+            const params = new URLSearchParams(window.location.search);
+            const urlTheme = params.get('theme');
+            const savedTheme = localStorage.getItem('theme');
+            return urlTheme || savedTheme || 'light';
+        }
+
+        // Icons using lucide
+        const IconCheck = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+        );
+
+        const IconX = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        );
+
+        const IconAlert = () => (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+            </svg>
+        );
+
+        const IconMoon = () => (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+        );
+
+        const IconSun = () => (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="5" />
+                <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m3.08 3.08l4.24 4.24M1 12h6m6 0h6m-16.78 7.78l4.24-4.24m3.08-3.08l4.24-4.24" />
+            </svg>
+        );
+
+        const IconLoader = () => (
+            <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+        );
+
+        // Main App Component
+        function DependencyResolverUI() {
+            const [theme, setTheme] = useState(getTheme());
+            const [fileType, setFileType] = useState('package.json');
+            const [content, setContent] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [result, setResult] = useState(null);
+            const [error, setError] = useState(null);
+            const [sessionId, setSessionId] = useState(null);
+            const [activeTab, setActiveTab] = useState('input');
+            const [chatMessages, setChatMessages] = useState([]);
+            const [chatInput, setChatInput] = useState('');
+            const [chatLoading, setChatLoading] = useState(false);
+            const contentInputRef = useRef(null);
+            const chatEndRef = useRef(null);
+
+            const isDark = theme === 'dark';
+            const cardClass = isDark ? 'card-dark' : 'card-light';
+            const inputClass = isDark ? 'input-dark' : 'input-light';
+            const textClass = isDark ? 'text-dark' : 'text-light';
+
+            // Toggle theme
+            const toggleTheme = () => {
+                const newTheme = theme === 'light' ? 'dark' : 'light';
+                setTheme(newTheme);
+                document.body.className = `${newTheme}-theme`;
+                localStorage.setItem('theme', newTheme);
+            };
+
+            // Apply theme on mount
+            useEffect(() => {
+                document.body.className = `${theme}-theme`;
+            }, [theme]);
+
+            // Resolve dependencies
+            const handleResolve = async () => {
+                if (!content.trim()) {
+                    setError('Please enter dependency content');
+                    return;
+                }
+
+                setLoading(true);
+                setError(null);
+                setResult(null);
+                setChatMessages([]);
+
+                try {
+                    const response = await fetch(
+                        'http://localhost:8000/dependency-resolver/resolve',
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                file_type: fileType,
+                                content: content,
+                                auto_resolve: true,
+                                session_id: sessionId
+                            })
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Failed to resolve dependencies');
+                    }
+
+                    const data = await response.json();
+                    setResult(data);
+                    setSessionId(data.session_id);
+                    setActiveTab('results');
+                } catch (err) {
+                    setError(err.message || 'An error occurred');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            // Handle chat message
+            const handleChat = async () => {
+                if (!chatInput.trim() || !sessionId) {
+                    return;
+                }
+
+                const userMessage = chatInput;
+                setChatInput('');
+                setChatMessages([...chatMessages, { role: 'user', content: userMessage }]);
+                setChatLoading(true);
+
+                try {
+                    const response = await fetch(
+                        'http://localhost:8000/dependency-resolver/chat',
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                session_id: sessionId,
+                                message: userMessage
+                            })
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Chat failed');
+                    }
+
+                    const data = await response.json();
+                    setChatMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+                } catch (err) {
+                    setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I had an error responding. Please try again.' }]);
+                } finally {
+                    setChatLoading(false);
+                }
+            };
+
+            // Auto-scroll chat to bottom
+            useEffect(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [chatMessages]);
+
+            // Insert template
+            const insertTemplate = (type) => {
+                const templates = {
+                    'package.json': '{\n  "dependencies": {\n    "express": "^4.0.0",\n    "lodash": "^4.17.0"\n  }\n}',
+                    'requirements.txt': 'django>=3.0,<4.0\ncelery==5.1.2\nredis>=3.0'
+                };
+                setContent(templates[type] || '');
+            };
+
+            return (
+                <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'dark-theme' : 'light-theme'}`}>
+                    {/* Header */}
+                    <header className={`border-b ${isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+                        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 primary-bg rounded-lg flex items-center justify-center text-white font-bold">
+                                    DR
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold gradient-text">Dependency Resolver</h1>
+                                    <p className={`text-sm ${textClass}`}>Resolve package conflicts intelligently</p>
+                                </div>
+                            </div>
+
+                            {/* Theme Toggle */}
+                            <button
+                                onClick={toggleTheme}
+                                className={`p-2 rounded-lg transition-colors ${isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}
+                                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+                            >
+                                {theme === 'light' ? <IconMoon /> : <IconSun />}
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Main Content */}
+                    <main className="max-w-7xl mx-auto px-4 py-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Input Panel */}
+                            <div className="lg:col-span-2">
+                                <div className={`border rounded-lg ${cardClass} overflow-hidden`}>
+                                    {/* Tabs */}
+                                    <div className={`flex border-b ${isDark ? 'border-gray-700' : 'border-gray-200'} overflow-x-auto`}>
+                                        <button
+                                            onClick={() => setActiveTab('input')}
+                                            className={`flex-1 px-4 py-3 font-medium transition-colors whitespace-nowrap ${
+                                                activeTab === 'input'
+                                                    ? 'primary-text border-b-2 primary-border'
+                                                    : `${textClass}`
+                                            }`}
+                                        >
+                                            Input
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('results')}
+                                            className={`flex-1 px-4 py-3 font-medium transition-colors whitespace-nowrap ${
+                                                activeTab === 'results'
+                                                    ? 'primary-text border-b-2 primary-border'
+                                                    : `${textClass}`
+                                            }`}
+                                        >
+                                            Results
+                                            {result && (
+                                                <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
+                                                    result.status === 'DONE'
+                                                        ? isDark ? 'badge-success-dark' : 'badge-success-light'
+                                                        : isDark ? 'badge-error-dark' : 'badge-error-light'
+                                                }`}>
+                                                    {result.status}
+                                                </span>
+                                            )}
+                                        </button>
+                                        {result && (
+                                            <button
+                                                onClick={() => setActiveTab('analysis')}
+                                                className={`flex-1 px-4 py-3 font-medium transition-colors whitespace-nowrap ${
+                                                    activeTab === 'analysis'
+                                                        ? 'primary-text border-b-2 primary-border'
+                                                        : `${textClass}`
+                                                }`}
+                                            >
+                                                🤖 AI Analysis
+                                            </button>
+                                        )}
+                                        {result && (
+                                            <button
+                                                onClick={() => setActiveTab('chat')}
+                                                className={`flex-1 px-4 py-3 font-medium transition-colors whitespace-nowrap ${
+                                                    activeTab === 'chat'
+                                                        ? 'primary-text border-b-2 primary-border'
+                                                        : `${textClass}`
+                                                }`}
+                                            >
+                                                💬 Chat
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => setActiveTab('history')}
+                                            className={`flex-1 px-4 py-3 font-medium transition-colors whitespace-nowrap ${
+                                                activeTab === 'history'
+                                                    ? 'primary-text border-b-2 primary-border'
+                                                    : `${textClass}`
+                                            }`}
+                                        >
+                                            History
+                                        </button>
+                                    </div>
+
+                                    {/* Input Tab */}
+                                    {activeTab === 'input' && (
+                                        <div className="p-6 space-y-4">
+                                            {/* File Type Selector */}
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">File Type</label>
+                                                <div className="flex gap-3">
+                                                    {['package.json', 'requirements.txt'].map((type) => (
+                                                        <button
+                                                            key={type}
+                                                            onClick={() => setFileType(type)}
+                                                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                                                                fileType === type
+                                                                    ? 'primary-bg text-white'
+                                                                    : `${isDark ? 'bg-gray-800' : 'bg-gray-200'}`
+                                                            }`}
+                                                        >
+                                                            {type}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Template Buttons */}
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Quick Templates</label>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => insertTemplate(fileType)}
+                                                        className={`px-3 py-2 rounded text-sm ${isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-200 hover:bg-gray-300'}`}
+                                                    >
+                                                        📋 Insert Example
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setContent('')}
+                                                        className={`px-3 py-2 rounded text-sm ${isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-200 hover:bg-gray-300'}`}
+                                                    >
+                                                        🗑️ Clear
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Content Input */}
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Content</label>
+                                                <textarea
+                                                    ref={contentInputRef}
+                                                    value={content}
+                                                    onChange={(e) => setContent(e.target.value)}
+                                                    className={`w-full h-64 p-4 border rounded-lg font-mono text-sm scrollbar-custom ${inputClass}`}
+                                                    placeholder={fileType === 'package.json'
+                                                        ? '{\n  "dependencies": { ... }'
+                                                        : 'package-name>=1.0.0'
+                                                    }
+                                                />
+                                            </div>
+
+                                            {/* Error Message */}
+                                            {error && (
+                                                <div className={`p-4 rounded-lg flex gap-3 ${isDark ? 'badge-error-dark' : 'badge-error-light'}`}>
+                                                    <IconX />
+                                                    <div>{error}</div>
+                                                </div>
+                                            )}
+
+                                            {/* Resolve Button */}
+                                            <button
+                                                onClick={handleResolve}
+                                                disabled={loading || !content.trim()}
+                                                className={`w-full py-3 rounded-lg font-medium text-white flex items-center justify-center gap-2 transition-all ${
+                                                    loading || !content.trim()
+                                                        ? 'opacity-50 cursor-not-allowed'
+                                                        : 'primary-bg primary-hover cursor-pointer'
+                                                }`}
+                                            >
+                                                {loading ? (
+                                                    <>
+                                                        <IconLoader />
+                                                        Resolving...
+                                                    </>
+                                                ) : (
+                                                    '🚀 Resolve Dependencies'
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Results Tab */}
+                                    {activeTab === 'results' && result && (
+                                        <div className="p-6 space-y-6 scrollbar-custom max-h-[600px] overflow-y-auto">
+                                            {/* Status */}
+                                            <div className="flex items-center gap-3">
+                                                {result.status === 'DONE' ? (
+                                                    <>
+                                                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                                        <span className="font-medium text-green-600">Resolution Successful</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
+                                                        <span className="font-medium text-red-600">{result.status}</span>
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            {/* Message */}
+                                            <p className={textClass}>{result.message}</p>
+
+                                            {/* Resolved Dependencies */}
+                                            {Object.keys(result.resolved_dependencies).length > 0 && (
+                                                <div>
+                                                    <h3 className="font-bold mb-3">Resolved Dependencies</h3>
+                                                    <div className={`border rounded-lg p-4 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                                                        {Object.entries(result.resolved_dependencies).map(([pkg, version]) => (
+                                                            <div key={pkg} className="flex justify-between items-center py-2 border-b border-gray-600 last:border-0">
+                                                                <code className="font-mono">{pkg}</code>
+                                                                <span className="primary-text font-mono font-bold">{version}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Conflicts */}
+                                            {result.conflicts.length > 0 && (
+                                                <div>
+                                                    <h3 className="font-bold mb-3 flex items-center gap-2">
+                                                        <IconAlert />
+                                                        Conflicts ({result.conflicts.length})
+                                                    </h3>
+                                                    <div className="space-y-2">
+                                                        {result.conflicts.map((conflict, idx) => (
+                                                            <div key={idx} className={`p-3 rounded-lg border ${isDark ? 'badge-error-dark border-red-800' : 'badge-error-light border-red-300'}`}>
+                                                                <p className="font-mono font-bold">{conflict.package}</p>
+                                                                <p className="text-sm mt-1">{conflict.reason}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Validation */}
+                                            {result.validation && (
+                                                <div>
+                                                    <h3 className="font-bold mb-3">Validation</h3>
+                                                    <div className={`p-4 rounded-lg border ${
+                                                        result.validation.installable
+                                                            ? isDark ? 'badge-success-dark' : 'badge-success-light'
+                                                            : isDark ? 'badge-error-dark' : 'badge-error-light'
+                                                    }`}>
+                                                        <div className="flex items-center gap-2">
+                                                            {result.validation.installable ? <IconCheck /> : <IconX />}
+                                                            <span className="font-medium">
+                                                                {result.validation.installable ? 'Installable' : 'Not Installable'}
+                                                            </span>
+                                                        </div>
+                                                        {result.validation.issues.length > 0 && (
+                                                            <ul className="mt-2 space-y-1">
+                                                                {result.validation.issues.map((issue, idx) => (
+                                                                    <li key={idx} className="text-sm">• {issue}</li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Analysis Tab (with LLM) */}
+                                    {activeTab === 'analysis' && result && (
+                                        <div className="p-6 space-y-6 scrollbar-custom max-h-[600px] overflow-y-auto">
+                                            {result.llm_conflict_analysis && (
+                                                <div>
+                                                    <h3 className="font-bold mb-3 flex items-center gap-2">
+                                                        🤖 Conflict Analysis
+                                                    </h3>
+                                                    <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-50'} whitespace-pre-wrap`}>
+                                                        {result.llm_conflict_analysis}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {result.llm_resolution_suggestion && (
+                                                <div>
+                                                    <h3 className="font-bold mb-3 flex items-center gap-2">
+                                                        💡 Suggestions
+                                                    </h3>
+                                                    <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-50'} whitespace-pre-wrap`}>
+                                                        {result.llm_resolution_suggestion}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {result.llm_explanation && (
+                                                <div>
+                                                    <h3 className="font-bold mb-3 flex items-center gap-2">
+                                                        ✓ Explanation
+                                                    </h3>
+                                                    <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-50'} whitespace-pre-wrap`}>
+                                                        {result.llm_explanation}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {!result.llm_conflict_analysis && !result.llm_resolution_suggestion && (
+                                                <div className="text-center">
+                                                    <p className={textClass}>No AI analysis available</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Chat Tab */}
+                                    {activeTab === 'chat' && result && (
+                                        <div className="flex flex-col h-[600px]">
+                                            {/* Chat Messages */}
+                                            <div className={`flex-1 p-4 overflow-y-auto scrollbar-custom ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+                                                {chatMessages.length === 0 && (
+                                                    <div className="flex items-center justify-center h-full">
+                                                        <p className={`text-center ${textClass}`}>
+                                                            Start a conversation about the dependency resolution.
+                                                            <br/>Ask questions or get guidance!
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {chatMessages.map((msg, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        className={`mb-4 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                                    >
+                                                        <div
+                                                            className={`max-w-xs px-4 py-2 rounded-lg ${
+                                                                msg.role === 'user'
+                                                                    ? 'primary-bg text-white'
+                                                                    : `${isDark ? 'bg-gray-800' : 'bg-gray-200'}`
+                                                            }`}
+                                                        >
+                                                            {msg.content}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {chatLoading && (
+                                                    <div className="flex gap-2">
+                                                        <div className="w-2 h-2 rounded-full primary-bg animate-bounce"></div>
+                                                        <div className="w-2 h-2 rounded-full primary-bg animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                                                        <div className="w-2 h-2 rounded-full primary-bg animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                                                    </div>
+                                                )}
+                                                <div ref={chatEndRef} />
+                                            </div>
+
+                                            {/* Chat Input */}
+                                            <div className={`border-t ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'} p-4`}>
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={chatInput}
+                                                        onChange={(e) => setChatInput(e.target.value)}
+                                                        onKeyPress={(e) => e.key === 'Enter' && handleChat()}
+                                                        placeholder="Ask me anything about the resolution..."
+                                                        className={`flex-1 px-4 py-2 rounded-lg border ${inputClass}`}
+                                                        disabled={chatLoading}
+                                                    />
+                                                    <button
+                                                        onClick={handleChat}
+                                                        disabled={chatLoading || !chatInput.trim()}
+                                                        className={`px-4 py-2 rounded-lg font-medium text-white transition-all ${
+                                                            chatLoading || !chatInput.trim()
+                                                                ? 'opacity-50 cursor-not-allowed'
+                                                                : 'primary-bg primary-hover'
+                                                        }`}
+                                                    >
+                                                        Send
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* History Tab */}
+                                    {activeTab === 'history' && result && (
+                                        <div className="p-6 space-y-4 scrollbar-custom max-h-[600px] overflow-y-auto">
+                                            <div className="space-y-3">
+                                                <div className={`p-4 rounded-lg border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                                                    <p className="text-sm font-mono text-gray-500">Session ID</p>
+                                                    <p className="font-mono break-all">{result.session_id}</p>
+                                                </div>
+
+                                                <div className={`p-4 rounded-lg border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                                                    <p className="text-sm font-mono text-gray-500">Iteration</p>
+                                                    <p className="text-2xl font-bold primary-text">{result.iteration}</p>
+                                                </div>
+
+                                                <div className={`p-4 rounded-lg border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                                                    <p className="text-sm font-mono text-gray-500">Packages Resolved</p>
+                                                    <p className="text-2xl font-bold primary-text">
+                                                        {Object.keys(result.resolved_dependencies).length}
+                                                    </p>
+                                                </div>
+
+                                                <div className={`p-4 rounded-lg border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                                                    <p className="text-sm font-mono text-gray-500">Conflicts Detected</p>
+                                                    <p className="text-2xl font-bold primary-text">{result.conflicts.length}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Empty State */}
+                                    {!result && activeTab !== 'input' && (
+                                        <div className="p-12 text-center">
+                                            <p className={textClass}>No results yet. Start by resolving dependencies.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Info Panel */}
+                            <div className="space-y-4">
+                                {/* Stats */}
+                                <div className={`border rounded-lg p-6 ${cardClass}`}>
+                                    <h3 className="font-bold mb-4">📊 Status</h3>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <p className={`text-sm ${textClass}`}>Theme</p>
+                                            <p className="font-medium capitalize">{theme} Mode</p>
+                                        </div>
+                                        {result && (
+                                            <>
+                                                <div>
+                                                    <p className={`text-sm ${textClass}`}>Status</p>
+                                                    <p className={`font-medium ${result.status === 'DONE' ? 'text-green-600' : 'text-red-600'}`}>
+                                                        {result.status}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className={`text-sm ${textClass}`}>Session ID</p>
+                                                    <p className="font-mono text-xs break-all">{result.session_id?.slice(0, 12)}...</p>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Features */}
+                                <div className={`border rounded-lg p-6 ${cardClass}`}>
+                                    <h3 className="font-bold mb-4">✨ Features</h3>
+                                    <ul className="space-y-2 text-sm">
+                                        <li className="flex gap-2">
+                                            <span>✅</span>
+                                            <span>npm & PyPI support</span>
+                                        </li>
+                                        <li className="flex gap-2">
+                                            <span>✅</span>
+                                            <span>Conflict detection</span>
+                                        </li>
+                                        <li className="flex gap-2">
+                                            <span>✅</span>
+                                            <span>Smart resolution</span>
+                                        </li>
+                                        <li className="flex gap-2">
+                                            <span>✅</span>
+                                            <span>Session persistence</span>
+                                        </li>
+                                        <li className="flex gap-2">
+                                            <span>✅</span>
+                                            <span>Light/Dark themes</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                {/* Help */}
+                                <div className={`border rounded-lg p-6 ${cardClass}`}>
+                                    <h3 className="font-bold mb-4">🆘 Help</h3>
+                                    <div className="space-y-2 text-sm">
+                                        <p>1. Select file type (package.json or requirements.txt)</p>
+                                        <p>2. Paste your dependencies</p>
+                                        <p>3. Click resolve</p>
+                                        <p>4. View results and conflicts</p>
+                                    </div>
+                                </div>
+
+                                {/* Theme Info */}
+                                <div className={`border rounded-lg p-6 ${cardClass}`}>
+                                    <h3 className="font-bold mb-4">🎨 Theme Control</h3>
+                                    <p className="text-sm mb-3">Themes can be controlled via:</p>
+                                    <ul className="text-sm space-y-1 font-mono">
+                                        <li>• Toggle button (top right)</li>
+                                        <li>• URL: ?theme=dark</li>
+                                        <li>• Local storage</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    {/* Footer */}
+                    <footer className={`border-t mt-12 ${isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
+                        <div className="max-w-7xl mx-auto px-4 py-6 text-center">
+                            <p className={textClass}>
+                                Dependency Resolver Agent • Built with ❤️ • Theme: <span className="primary-text font-bold">#009eda</span>
+                            </p>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        // Render App
+        ReactDOM.render(
+            <DependencyResolverUI />,
+            document.getElementById('root')
+        );
+    </script>
+</body>
+</html>

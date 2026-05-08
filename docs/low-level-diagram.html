@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dependency Resolver Agent — Low-Level Architecture</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #ECEFF1; min-height: 100vh; }
+header { background: #1A1A2E; color: #fff; padding: 14px 24px 0; position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 16px rgba(0,0,0,0.4); }
+.h-row { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+header h1 { font-size: 1.05rem; font-weight: 700; }
+header .subtitle { font-size: 0.72rem; color: #888; }
+.tabs { display: flex; }
+.tab-btn { padding: 9px 22px; background: none; border: none; color: #888; cursor: pointer; font-size: 0.78rem; font-weight: 500; border-bottom: 3px solid transparent; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+.tab-btn:hover { color: #ccc; }
+.tab-btn.active { color: #4DB6AC; border-bottom-color: #4DB6AC; }
+main { padding: 20px; max-width: 1480px; margin: 0 auto; }
+.panel { display: none; }
+.panel.active { display: block; }
+svg { display: block; width: 100%; height: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 16px rgba(0,0,0,0.09); }
+text { user-select: none; }
+.hoverable { cursor: pointer; }
+.hoverable:hover rect { filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15)); }
+#tooltip { position: fixed; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,0.12); padding: 12px 16px; max-width: 310px; font-size: 12px; line-height: 1.55; opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 300; }
+#tooltip.vis { opacity: 1; }
+#tooltip h4 { font-size: 13px; font-weight: 700; color: #1A1A2E; margin-bottom: 5px; }
+#tooltip p { color: #555; }
+.mono { font-family: 'SF Mono','Fira Code','Courier New',monospace; font-size: 10.5px; background: #f0f4f8; padding: 2px 6px; border-radius: 4px; display: block; margin-top: 4px; color: #004D40; }
+</style>
+</head>
+<body>
+<header>
+  <div class="h-row">
+    <h1>Dependency Resolver Agent</h1>
+    <span class="subtitle">Low-Level Architecture — Internal Components, Data Flows &amp; Integrations</span>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="1">① Backend Pipeline</button>
+    <button class="tab-btn" data-tab="2">② Session State Machine</button>
+    <button class="tab-btn" data-tab="3">③ WebSocket Protocol</button>
+    <button class="tab-btn" data-tab="4">④ Frontend Data Flow</button>
+    <button class="tab-btn" data-tab="5">⑤ Data Schemas</button>
+  </nav>
+</header>
+<main>
+
+<!-- ═══════════════════════════════════════════════════════
+     PANEL 1 — BACKEND PIPELINE
+═══════════════════════════════════════════════════════ -->
+<div class="panel active" id="p1">
+<svg viewBox="0 0 1380 1145" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="p1-arr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0, 9 3.5, 0 7" fill="#00897B"/>
+  </marker>
+  <marker id="p1-arr-o" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0, 9 3.5, 0 7" fill="#F57C00"/>
+  </marker>
+</defs>
+
+<!-- Title -->
+<text x="690" y="34" text-anchor="middle" font-size="17" font-weight="700" fill="#1A1A2E">Backend Resolution Pipeline</text>
+<text x="690" y="54" text-anchor="middle" font-size="11" fill="#666">HITLOrchestrator._run_resolve_pipeline_inner()  —  agents/dependency_resolver/hitl/orchestrator.py</text>
+
+<!-- Column headers -->
+<rect x="30" y="62" width="680" height="20" rx="4" fill="#E0F2F1"/>
+<text x="370" y="76" text-anchor="middle" font-size="11" font-weight="600" fill="#00695C">Pipeline Stages  ·  Input → Method → Output</text>
+<rect x="742" y="62" width="610" height="20" rx="4" fill="#EDE7F6"/>
+<text x="1047" y="76" text-anchor="middle" font-size="11" font-weight="600" fill="#6A1B9A">WebSocket Frames Emitted  ·  Registry &amp; Security Calls</text>
+
+<!-- Vertical flow line -->
+<line x1="370" y1="86" x2="370" y2="1125" stroke="#B2DFDB" stroke-width="2" stroke-dasharray="4,4"/>
+
+<!-- ── STAGE 1: PARSE (y=86, h=102) ── -->
+<g class="hoverable" data-tip="parse" transform="translate(30,86)">
+  <rect width="680" height="102" rx="8" fill="#E8F5E9" stroke="#388E3C" stroke-width="1.3"/>
+  <rect width="680" height="27" rx="8" fill="#2E7D32"/>
+  <rect y="19" width="680" height="8" fill="#2E7D32"/>
+  <circle cx="19" cy="13.5" r="11" fill="#1B5E20"/>
+  <text x="19" y="17.5" text-anchor="middle" fill="white" font-weight="700" font-size="10.5">1</text>
+  <text x="38" y="18.5" fill="white" font-weight="600" font-size="12">PARSE MANIFEST</text>
+  <text x="668" y="18.5" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9" font-family="monospace">parsers/</text>
+  <text x="12" y="45" font-size="11"><tspan fill="#555" font-weight="600">In: </tspan><tspan fill="#444" font-style="italic">manifest: str,  ecosystem: Literal["pypi","npm","maven","cargo"]</tspan></text>
+  <rect x="8" y="51" width="664" height="17" rx="3" fill="#C8E6C9"/>
+  <text x="14" y="63.5" font-family="monospace" font-size="10" fill="#1B5E20">get_parser(ecosystem).parse(manifest, include_dev=False)</text>
+  <text x="12" y="82" font-size="11"><tspan fill="#555" font-weight="600">Out: </tspan><tspan fill="#444" font-style="italic">List[Tuple[str, str]]   # [(package_name, version_constraint), …]</tspan></text>
+  <rect x="8" y="88" width="664" height="16" rx="3" fill="#FFF9C4"/>
+  <text x="14" y="99.5" font-size="10" fill="#5D4037">⚡  solver_event  {stage: "parsing",  text: "Parsing manifest…"}</text>
+</g>
+
+<!-- Stage 1 → Stage 2 arrow -->
+<polygon points="363,192 377,192 370,202" fill="#00897B"/>
+
+<!-- ── STAGE 2: BUILD DAG (y=206, h=122) ── -->
+<g class="hoverable" data-tip="dag" transform="translate(30,206)">
+  <rect width="680" height="122" rx="8" fill="#E8F5E9" stroke="#388E3C" stroke-width="1.3"/>
+  <rect width="680" height="27" rx="8" fill="#2E7D32"/>
+  <rect y="19" width="680" height="8" fill="#2E7D32"/>
+  <circle cx="19" cy="13.5" r="11" fill="#1B5E20"/>
+  <text x="19" y="17.5" text-anchor="middle" fill="white" font-weight="700" font-size="10.5">2</text>
+  <text x="38" y="18.5" fill="white" font-weight="600" font-size="12">BUILD DEPENDENCY GRAPH  (DAG)</text>
+  <text x="668" y="18.5" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9" font-family="monospace">resolver/graph.py</text>
+  <text x="12" y="45" font-size="11"><tspan fill="#555" font-weight="600">In: </tspan><tspan fill="#444" font-style="italic">List[Tuple[str, str]]  # direct deps from Stage 1</tspan></text>
+  <rect x="8" y="51" width="664" height="17" rx="3" fill="#C8E6C9"/>
+  <text x="14" y="63.5" font-family="monospace" font-size="10" fill="#1B5E20">DependencyGraph(eco, registry, max_depth=4).build(direct_deps)</text>
+  <text x="14" y="80" font-size="10" fill="#555">   ↳ _expand(name, constraint, depth, visited)  — recursive, catches per-node exceptions</text>
+  <text x="14" y="95" font-size="10" fill="#555">   ↳ registry.find_compatible_version(name, constraint)  +  registry.get_dependencies(name, ver)</text>
+  <text x="12" y="113" font-size="11"><tspan fill="#555" font-weight="600">Out: </tspan><tspan fill="#444" font-style="italic">graph_dict: Dict  # {nodes: Dict[str,DependencyNode], errors: List[str]}</tspan></text>
+  <rect x="8" y="118" width="664" height="16" rx="3" fill="#FFF9C4"/>
+  <text x="14" y="129.5" font-size="10" fill="#5D4037">⚡  solver_event  {stage: "fetching"}  +  HTTP GET ×N → registry APIs  (concurrent, asyncio)</text>
+</g>
+
+<!-- Stage 2 → Stage 3 arrow -->
+<polygon points="363,332 377,332 370,342" fill="#00897B"/>
+
+<!-- ── STAGE 3: SOLVE (y=346, h=122) ── -->
+<g class="hoverable" data-tip="solve" transform="translate(30,346)">
+  <rect width="680" height="122" rx="8" fill="#E8F5E9" stroke="#388E3C" stroke-width="1.3"/>
+  <rect width="680" height="27" rx="8" fill="#2E7D32"/>
+  <rect y="19" width="680" height="8" fill="#2E7D32"/>
+  <circle cx="19" cy="13.5" r="11" fill="#1B5E20"/>
+  <text x="19" y="17.5" text-anchor="middle" fill="white" font-weight="700" font-size="10.5">3</text>
+  <text x="38" y="18.5" fill="white" font-weight="600" font-size="12">VERSION RESOLUTION  (PubGrub)</text>
+  <text x="668" y="18.5" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9" font-family="monospace">resolver/solver.py</text>
+  <text x="12" y="45" font-size="11"><tspan fill="#555" font-weight="600">In: </tspan><tspan fill="#444" font-style="italic">graph_dict  # nodes with version constraints from all requesters</tspan></text>
+  <rect x="8" y="51" width="664" height="17" rx="3" fill="#C8E6C9"/>
+  <text x="14" y="63.5" font-family="monospace" font-size="10" fill="#1B5E20">PubGrubSolver(ecosystem, strategy, registry).solve(graph_dict)</text>
+  <text x="14" y="80" font-size="10" fill="#555">   ↳ _gather_constraints(graph)  →  {pkg: {requester: constraint}}  per package</text>
+  <text x="14" y="95" font-size="10" fill="#555">   ↳ _sort_versions(available, strategy)  —  stable | latest | minimal</text>
+  <text x="14" y="109" font-size="10" fill="#555">   ↳ version_satisfies_constraint(candidate, constraint)  via packaging.version.Version</text>
+  <text x="12" y="128" font-size="11" dy="3"><tspan fill="#555" font-weight="600">Out: </tspan><tspan fill="#444" font-style="italic">Tuple[List[ResolvedPackage], List[Conflict]]</tspan></text>
+  <!-- no side effect row for solve -->
+</g>
+<!-- solver_event frame callout for stage 3 -->
+
+<!-- Stage 3 → Stage 4 arrow -->
+<polygon points="363,472 377,472 370,482" fill="#00897B"/>
+
+<!-- ── STAGE 4: CVE AUDIT (y=486, h=102) ── -->
+<g class="hoverable" data-tip="cve" transform="translate(30,486)">
+  <rect width="680" height="102" rx="8" fill="#FFF3E0" stroke="#E65100" stroke-width="1.3"/>
+  <rect width="680" height="27" rx="8" fill="#BF360C"/>
+  <rect y="19" width="680" height="8" fill="#BF360C"/>
+  <circle cx="19" cy="13.5" r="11" fill="#7F0000"/>
+  <text x="19" y="17.5" text-anchor="middle" fill="white" font-weight="700" font-size="10.5">4</text>
+  <text x="38" y="18.5" fill="white" font-weight="600" font-size="12">CVE SECURITY AUDIT</text>
+  <text x="668" y="18.5" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9" font-family="monospace">security/osv_client.py</text>
+  <text x="12" y="45" font-size="11"><tspan fill="#555" font-weight="600">In: </tspan><tspan fill="#444" font-style="italic">List[ResolvedPackage],  ecosystem: str</tspan></text>
+  <rect x="8" y="51" width="664" height="17" rx="3" fill="#FFCCBC"/>
+  <text x="14" y="63.5" font-family="monospace" font-size="10" fill="#BF360C">OSVClient(timeout=15).annotate_packages(packages, ecosystem)</text>
+  <text x="14" y="80" font-size="10" fill="#555">   ↳ POST api.osv.dev/v1/query per package  (asyncio.Semaphore(10) — rate limit)</text>
+  <text x="12" y="99" font-size="11" dy="3"><tspan fill="#555" font-weight="600">Out: </tspan><tspan fill="#444" font-style="italic">List[Dict]  # each package + vulnerabilities: List["CVE-…"|"GHSA-…"]</tspan></text>
+</g>
+
+<!-- Stage 4 → Stage 5 arrow -->
+<polygon points="363,592 377,592 370,602" fill="#00897B"/>
+
+<!-- ── STAGE 5: LICENSE CHECK (y=606, h=84) ── -->
+<g class="hoverable" data-tip="license" transform="translate(30,606)">
+  <rect width="680" height="84" rx="8" fill="#FFF3E0" stroke="#E65100" stroke-width="1.3"/>
+  <rect width="680" height="27" rx="8" fill="#BF360C"/>
+  <rect y="19" width="680" height="8" fill="#BF360C"/>
+  <circle cx="19" cy="13.5" r="11" fill="#7F0000"/>
+  <text x="19" y="17.5" text-anchor="middle" fill="white" font-weight="700" font-size="10.5">5</text>
+  <text x="38" y="18.5" fill="white" font-weight="600" font-size="12">LICENSE COMPATIBILITY CHECK</text>
+  <text x="668" y="18.5" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9" font-family="monospace">security/license_check.py</text>
+  <text x="12" y="45" font-size="11"><tspan fill="#555" font-weight="600">In: </tspan><tspan fill="#444" font-style="italic">List[ResolvedPackage]  # with .license: Optional[str] per package</tspan></text>
+  <rect x="8" y="51" width="664" height="17" rx="3" fill="#FFCCBC"/>
+  <text x="14" y="63.5" font-family="monospace" font-size="10" fill="#BF360C">LicenseChecker.check(packages)  →  validate compatibility matrix</text>
+  <text x="12" y="81" font-size="11" dy="-2"><tspan fill="#555" font-weight="600">Out: </tspan><tspan fill="#444" font-style="italic">List[str]  # license_issues — e.g. ["GPL-3.0 incompatible with MIT"]</tspan></text>
+</g>
+
+<!-- Stage 5 → Stage 6 arrow -->
+<polygon points="363,694 377,694 370,704" fill="#00897B"/>
+
+<!-- ── STAGE 6: LLM EXPLAIN (y=708, h=122) ── -->
+<g class="hoverable" data-tip="llm" transform="translate(30,708)">
+  <rect width="680" height="122" rx="8" fill="#EDE7F6" stroke="#6A1B9A" stroke-width="1.3"/>
+  <rect width="680" height="27" rx="8" fill="#6A1B9A"/>
+  <rect y="19" width="680" height="8" fill="#6A1B9A"/>
+  <circle cx="19" cy="13.5" r="11" fill="#4A148C"/>
+  <text x="19" y="17.5" text-anchor="middle" fill="white" font-weight="700" font-size="10.5">6</text>
+  <text x="38" y="18.5" fill="white" font-weight="600" font-size="12">LLM CONFLICT EXPLANATION  (Streaming)</text>
+  <text x="668" y="18.5" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9" font-family="monospace">llm/explainer.py</text>
+  <text x="12" y="45" font-size="11"><tspan fill="#555" font-weight="600">In: </tspan><tspan fill="#444" font-style="italic">List[Conflict], List[ResolvedPackage], ecosystem, strategy</tspan></text>
+  <rect x="8" y="51" width="664" height="17" rx="3" fill="#CE93D8"/>
+  <text x="14" y="63.5" font-family="monospace" font-size="10" fill="#4A148C">DependencyExplainer.stream_explanation(conflicts, resolved)</text>
+  <text x="14" y="80" font-size="10" fill="#555">   ↳ _svc.astream_messages([system_msg, user_msg])  — Azure OpenAI token stream</text>
+  <text x="14" y="95" font-size="10" fill="#555">   ↳ fallback: _fallback_explanation()  if Azure credentials missing</text>
+  <text x="12" y="112" font-size="11"><tspan fill="#555" font-weight="600">Out: </tspan><tspan fill="#444" font-style="italic">AsyncIterator[str]  # token stream  →  yielded via async for loop</tspan></text>
+  <rect x="8" y="117" width="664" height="16" rx="3" fill="#FFF9C4"/>
+  <text x="14" y="128.5" font-size="10" fill="#5D4037">⚡  agent_message {delta: token, done: false} × N tokens  then  agent_message {done: true}</text>
+</g>
+
+<!-- Stage 6 → Stage 7 arrow -->
+<polygon points="363,834 377,834 370,844" fill="#00897B"/>
+
+<!-- ── STAGE 7: BUILD OUTPUT (y=848, h=84) ── -->
+<g class="hoverable" data-tip="output" transform="translate(30,848)">
+  <rect width="680" height="84" rx="8" fill="#E8F5E9" stroke="#388E3C" stroke-width="1.3"/>
+  <rect width="680" height="27" rx="8" fill="#2E7D32"/>
+  <rect y="19" width="680" height="8" fill="#2E7D32"/>
+  <circle cx="19" cy="13.5" r="11" fill="#1B5E20"/>
+  <text x="19" y="17.5" text-anchor="middle" fill="white" font-weight="700" font-size="10.5">7</text>
+  <text x="38" y="18.5" fill="white" font-weight="600" font-size="12">BUILD LOCKFILE &amp; REPORT</text>
+  <text x="668" y="18.5" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9" font-family="monospace">llm/explainer.py</text>
+  <text x="12" y="45" font-size="11"><tspan fill="#555" font-weight="600">In: </tspan><tspan fill="#444" font-style="italic">resolved[], conflicts[], conflict_explanation: str, license_issues[], ecosystem</tspan></text>
+  <rect x="8" y="51" width="664" height="17" rx="3" fill="#C8E6C9"/>
+  <text x="14" y="63.5" font-family="monospace" font-size="10" fill="#1B5E20">build_lockfile(resolved, ecosystem)  +  build_report(resolved, conflicts, …)</text>
+  <text x="12" y="82" font-size="11" dy="-1"><tspan fill="#555" font-weight="600">Out: </tspan><tspan fill="#444" font-style="italic">lockfile: str  (ecosystem-specific format)  +  report_markdown: str</tspan></text>
+</g>
+
+<!-- Stage 7 → Stage 8 arrow -->
+<polygon points="363,936 377,936 370,946" fill="#00897B"/>
+
+<!-- ── STAGE 8: OUTPUT GUARDRAILS (y=950, h=102) ── -->
+<g class="hoverable" data-tip="guardrails" transform="translate(30,950)">
+  <rect width="680" height="102" rx="8" fill="#FCE4EC" stroke="#AD1457" stroke-width="1.3"/>
+  <rect width="680" height="27" rx="8" fill="#880E4F"/>
+  <rect y="19" width="680" height="8" fill="#880E4F"/>
+  <circle cx="19" cy="13.5" r="11" fill="#560027"/>
+  <text x="19" y="17.5" text-anchor="middle" fill="white" font-weight="700" font-size="10.5">8</text>
+  <text x="38" y="18.5" fill="white" font-weight="600" font-size="12">OUTPUT GUARDRAILS</text>
+  <text x="668" y="18.5" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9" font-family="monospace">hitl/guardrails.py</text>
+  <text x="12" y="45" font-size="11"><tspan fill="#555" font-weight="600">In: </tspan><tspan fill="#444" font-style="italic">lockfile: str,  report_markdown: str</tspan></text>
+  <rect x="8" y="51" width="664" height="17" rx="3" fill="#F48FB1"/>
+  <text x="14" y="63.5" font-family="monospace" font-size="10" fill="#880E4F">GuardrailLayer.check_output(output)  →  L1 | L2 | L3 checks</text>
+  <text x="14" y="80" font-size="10" fill="#555">   L1: version hallucination detection   ·   L2: CVE/GHSA citation check   ·   L3: confidence tone</text>
+  <text x="12" y="99" font-size="11" dy="2"><tspan fill="#555" font-weight="600">Out: </tspan><tspan fill="#444" font-style="italic">validated_output: Dict  # raises GuardrailViolation on failure</tspan></text>
+</g>
+
+<!-- Stage 8 → Stage 9 arrow -->
+<polygon points="363,1056 377,1056 370,1066" fill="#00897B"/>
+
+<!-- ── STAGE 9: APPROVAL GATE (y=1070, h=62) ── -->
+<g class="hoverable" data-tip="approval" transform="translate(30,1070)">
+  <rect width="680" height="62" rx="8" fill="#E3F2FD" stroke="#1565C0" stroke-width="1.8"/>
+  <rect width="680" height="27" rx="8" fill="#0D47A1"/>
+  <rect y="19" width="680" height="8" fill="#0D47A1"/>
+  <circle cx="19" cy="13.5" r="11" fill="#01579B"/>
+  <text x="19" y="17.5" text-anchor="middle" fill="white" font-weight="700" font-size="10.5">9</text>
+  <text x="38" y="18.5" fill="white" font-weight="600" font-size="12">APPROVAL GATE  →  PENDING_APPROVAL</text>
+  <text x="668" y="18.5" text-anchor="end" fill="rgba(255,255,255,0.6)" font-size="9" font-family="monospace">hitl/approval_gateway.py</text>
+  <rect x="8" y="31" width="664" height="17" rx="3" fill="#BBDEFB"/>
+  <text x="14" y="43.5" font-family="monospace" font-size="10" fill="#0D47A1">approval_gateway.store_result(sid, result)  +  approval_gateway.register(ApprovalRequest(…))</text>
+  <rect x="8" y="49" width="664" height="16" rx="3" fill="#FFF9C4"/>
+  <text x="14" y="60" font-size="10" fill="#5D4037">⚡  approval_request  {approval_id, proposed_lockfile, report_markdown, conflicts[], stats{…}}</text>
+</g>
+
+<!-- ═══════ WS FRAME CALLOUTS (right column) ═══════ -->
+
+<!-- Stage 1 frame -->
+<g transform="translate(742,86)">
+  <rect width="610" height="52" rx="7" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="1.2"/>
+  <rect width="610" height="22" rx="7" fill="#7B1FA2"/>
+  <rect y="14" width="610" height="8" fill="#7B1FA2"/>
+  <text x="10" y="15.5" fill="white" font-size="10" font-weight="600">WS ▶  solver_event</text>
+  <text x="10" y="36" font-family="monospace" font-size="9.5" fill="#4A148C">{"stage": "parsing",  "text": "Parsing requirements.txt…"}</text>
+  <text x="10" y="48" font-family="monospace" font-size="9.5" fill="#888">done: true</text>
+</g>
+<line x1="710" y1="137" x2="742" y2="137" stroke="#9C27B0" stroke-width="1" stroke-dasharray="4,3"/>
+
+<!-- Stage 2 frame + registry calls -->
+<g transform="translate(742,206)">
+  <rect width="610" height="70" rx="7" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="1.2"/>
+  <rect width="610" height="22" rx="7" fill="#7B1FA2"/>
+  <rect y="14" width="610" height="8" fill="#7B1FA2"/>
+  <text x="10" y="15.5" fill="white" font-size="10" font-weight="600">WS ▶  solver_event  +  Registry HTTP Calls</text>
+  <text x="10" y="36" font-family="monospace" font-size="9.5" fill="#4A148C">{"stage": "fetching",  "text": "Building dependency graph…"}</text>
+  <text x="10" y="50" font-size="9.5" fill="#F57C00">→ HTTP GET  registry.npmjs.org/package/{name}   (npm)</text>
+  <text x="10" y="63" font-size="9.5" fill="#F57C00">→ HTTP GET  pypi.org/pypi/{name}/json              (pypi)</text>
+</g>
+<line x1="710" y1="267" x2="742" y2="267" stroke="#9C27B0" stroke-width="1" stroke-dasharray="4,3"/>
+
+<!-- Stage 3 frame -->
+<g transform="translate(742,346)">
+  <rect width="610" height="70" rx="7" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="1.2"/>
+  <rect width="610" height="22" rx="7" fill="#7B1FA2"/>
+  <rect y="14" width="610" height="8" fill="#7B1FA2"/>
+  <text x="10" y="15.5" fill="white" font-size="10" font-weight="600">WS ▶  solver_event  +  Strategy Branches</text>
+  <text x="10" y="36" font-family="monospace" font-size="9.5" fill="#4A148C">{"stage": "solving",  "text": "Running PubGrub solver [stable]…"}</text>
+  <text x="10" y="51" font-size="9.5" fill="#555">stable  → latest non-prerelease  (packaging.version.Version sort, desc)</text>
+  <text x="10" y="64" font-size="9.5" fill="#555">latest  → absolute latest  ·  minimal  → oldest stable  (sort asc)</text>
+</g>
+<line x1="710" y1="407" x2="742" y2="407" stroke="#9C27B0" stroke-width="1" stroke-dasharray="4,3"/>
+
+<!-- Stage 4 frame + osv.dev -->
+<g transform="translate(742,486)">
+  <rect width="610" height="70" rx="7" fill="#FBE9E7" stroke="#BF360C" stroke-width="1.2"/>
+  <rect width="610" height="22" rx="7" fill="#BF360C"/>
+  <rect y="14" width="610" height="8" fill="#BF360C"/>
+  <text x="10" y="15.5" fill="white" font-size="10" font-weight="600">WS ▶  solver_event  +  OSV.dev Security API</text>
+  <text x="10" y="36" font-family="monospace" font-size="9.5" fill="#BF360C">{"stage": "auditing",  "text": "Querying CVE database…"}</text>
+  <text x="10" y="51" font-size="9.5" fill="#E65100">→ POST api.osv.dev/v1/query  {"version":"…","package":{"name":"…","ecosystem":"PyPI"}}</text>
+  <text x="10" y="64" font-size="9.5" fill="#E65100">   Response: {"vulns":[{"id":"CVE-2023-…"},…]}  (Semaphore 10 concurrent)</text>
+</g>
+<line x1="710" y1="537" x2="742" y2="537" stroke="#BF360C" stroke-width="1" stroke-dasharray="4,3"/>
+
+<!-- Stage 5: no explicit frame (bundled with stage 4 audit event) -->
+<g transform="translate(742,606)">
+  <rect width="610" height="42" rx="7" fill="#FBE9E7" stroke="#BF360C" stroke-width="1.2"/>
+  <text x="10" y="17" font-size="10" fill="#BF360C" font-weight="600">License check is synchronous — no additional WS frame</text>
+  <text x="10" y="33" font-size="9.5" fill="#888">Results bundled into report_markdown in Stage 7</text>
+</g>
+<line x1="710" y1="627" x2="742" y2="627" stroke="#BF360C" stroke-width="1" stroke-dasharray="4,3"/>
+
+<!-- Stage 6 frame (streaming tokens) -->
+<g transform="translate(742,708)">
+  <rect width="610" height="85" rx="7" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="1.2"/>
+  <rect width="610" height="22" rx="7" fill="#7B1FA2"/>
+  <rect y="14" width="610" height="8" fill="#7B1FA2"/>
+  <text x="10" y="15.5" fill="white" font-size="10" font-weight="600">WS ▶  agent_message  (streaming — many frames)</text>
+  <text x="10" y="36" font-family="monospace" font-size="9.5" fill="#4A148C">{"type":"agent_message","payload":{"delta":"The "},"done":false}</text>
+  <text x="10" y="50" font-family="monospace" font-size="9.5" fill="#4A148C">{"type":"agent_message","payload":{"delta":"conflict"},"done":false}</text>
+  <text x="10" y="64" font-family="monospace" font-size="9.5" fill="#4A148C">{"type":"agent_message","payload":{"text":"…full…"},"done":true}   ← final</text>
+  <text x="10" y="79" font-size="9.5" fill="#888">Azure OpenAI streaming via  _svc.astream_messages()  — token by token</text>
+</g>
+<line x1="710" y1="769" x2="742" y2="769" stroke="#9C27B0" stroke-width="1" stroke-dasharray="4,3"/>
+
+<!-- Stage 7+8: internal -->
+<g transform="translate(742,848)">
+  <rect width="610" height="42" rx="7" fill="#F1F8E9" stroke="#558B2F" stroke-width="1.2"/>
+  <text x="10" y="17" font-size="10" fill="#558B2F" font-weight="600">Stages 7 &amp; 8 are internal — no WS frames emitted</text>
+  <text x="10" y="33" font-size="9.5" fill="#888">build_lockfile() / build_report() / guardrail checks run synchronously</text>
+</g>
+
+<!-- Stage 9 approval frame -->
+<g transform="translate(742,1070)">
+  <rect width="610" height="62" rx="7" fill="#E3F2FD" stroke="#1565C0" stroke-width="1.5"/>
+  <rect width="610" height="22" rx="7" fill="#1565C0"/>
+  <rect y="14" width="610" height="8" fill="#1565C0"/>
+  <text x="10" y="15.5" fill="white" font-size="10" font-weight="600">WS ▶  approval_request  (session → PENDING_APPROVAL)</text>
+  <text x="10" y="37" font-family="monospace" font-size="9.5" fill="#0D47A1">{"type":"approval_request","payload":{"approval_id":"…",</text>
+  <text x="10" y="51" font-family="monospace" font-size="9.5" fill="#0D47A1">  "proposed_lockfile":"…","conflicts":[…],"stats":{…}}}</text>
+</g>
+<line x1="710" y1="1101" x2="742" y2="1101" stroke="#1565C0" stroke-width="1" stroke-dasharray="4,3"/>
+
+</svg>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PANEL 2 — SESSION STATE MACHINE
+═══════════════════════════════════════════════════════ -->
+<div class="panel" id="p2">
+<svg viewBox="0 0 1380 740" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="p2-arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0,10 3.5,0 7" fill="#00695C"/>
+  </marker>
+  <marker id="p2-arr-r" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0,10 3.5,0 7" fill="#C62828"/>
+  </marker>
+  <marker id="p2-arr-g" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0,10 3.5,0 7" fill="#2E7D32"/>
+  </marker>
+  <marker id="p2-arr-b" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0,10 3.5,0 7" fill="#1565C0"/>
+  </marker>
+</defs>
+
+<!-- Title -->
+<text x="690" y="34" text-anchor="middle" font-size="17" font-weight="700" fill="#1A1A2E">HITL Session State Machine</text>
+<text x="690" y="54" text-anchor="middle" font-size="11" fill="#666">HITLSession.status  ·  agents/dependency_resolver/hitl/session.py  +  orchestrator.py</text>
+
+<!-- ── STATE: CREATED (x=60, y=220, w=160, h=90) ── -->
+<g class="hoverable" data-tip="s-created" transform="translate(60,220)">
+  <rect width="160" height="90" rx="12" fill="#F3F3F3" stroke="#757575" stroke-width="2"/>
+  <rect width="160" height="30" rx="12" fill="#757575"/>
+  <rect y="22" width="160" height="8" fill="#757575"/>
+  <text x="80" y="20" text-anchor="middle" fill="white" font-weight="700" font-size="12">CREATED</text>
+  <text x="80" y="50" text-anchor="middle" font-size="9.5" fill="#444">create_session() called</text>
+  <text x="80" y="64" text-anchor="middle" font-size="9.5" fill="#444">UUID assigned</text>
+  <text x="80" y="78" text-anchor="middle" font-size="9.5" fill="#444">JSON persisted to disk</text>
+</g>
+
+<!-- CREATED → ACTIVE arrow -->
+<line x1="220" y1="265" x2="278" y2="265" stroke="#00695C" stroke-width="2" marker-end="url(#p2-arr)"/>
+<rect x="225" y="248" width="52" height="16" rx="4" fill="#E0F7FA"/>
+<text x="251" y="259.5" text-anchor="middle" font-size="9" fill="#00695C" font-weight="600">WS connect</text>
+
+<!-- ── STATE: ACTIVE (x=280, y=170, w=200, h=185) ── -->
+<g class="hoverable" data-tip="s-active" transform="translate(280,170)">
+  <rect width="200" height="185" rx="12" fill="#E0F2F1" stroke="#00897B" stroke-width="2.5"/>
+  <rect width="200" height="30" rx="12" fill="#00695C"/>
+  <rect y="22" width="200" height="8" fill="#00695C"/>
+  <text x="100" y="20" text-anchor="middle" fill="white" font-weight="700" font-size="13">ACTIVE</text>
+  <text x="10" y="52" font-size="9.5" fill="#004D40" font-weight="600">Allowed operations:</text>
+  <text x="10" y="67" font-size="9" fill="#555">▶  _run_resolve_pipeline()</text>
+  <text x="10" y="81" font-size="9" fill="#555">▶  _answer_question(user_text)</text>
+  <text x="10" y="95" font-size="9" fill="#555">▶  _run_search(query)</text>
+  <text x="10" y="109" font-size="9" fill="#555">▶  handle_message() — route intent</text>
+  <line x1="10" y1="118" x2="188" y2="118" stroke="#B2DFDB" stroke-width="1"/>
+  <text x="10" y="131" font-size="9.5" fill="#004D40" font-weight="600">asyncio.Lock guard:</text>
+  <text x="10" y="146" font-size="9" fill="#555">_pipeline_locks[sid].acquire()</text>
+  <text x="10" y="160" font-size="9" fill="#555">Blocks concurrent pipeline runs</text>
+  <text x="10" y="176" font-size="9" fill="#888">Released on pipeline complete/error</text>
+</g>
+
+<!-- Self-loop on ACTIVE (user message / Q&A / search) -->
+<path d="M 380 170 C 380 120 480 120 480 170" stroke="#00897B" stroke-width="1.5" fill="none" marker-end="url(#p2-arr)" stroke-dasharray="5,3"/>
+<text x="430" y="116" text-anchor="middle" font-size="9" fill="#00695C">user_message</text>
+<text x="430" y="128" text-anchor="middle" font-size="9" fill="#00695C">Q&amp;A / search</text>
+
+<!-- ACTIVE → PENDING_APPROVAL -->
+<line x1="480" y1="265" x2="548" y2="265" stroke="#1565C0" stroke-width="2" marker-end="url(#p2-arr-b)"/>
+<rect x="482" y="247" width="66" height="28" rx="4" fill="#E3F2FD"/>
+<text x="515" y="258.5" text-anchor="middle" font-size="9" fill="#1565C0" font-weight="600">pipeline</text>
+<text x="515" y="269.5" text-anchor="middle" font-size="9" fill="#1565C0" font-weight="600">completes</text>
+
+<!-- ── STATE: PENDING_APPROVAL (x=550, y=220, w=210, h=90) ── -->
+<g class="hoverable" data-tip="s-pending" transform="translate(550,220)">
+  <rect width="210" height="90" rx="12" fill="#E3F2FD" stroke="#1565C0" stroke-width="2.5"/>
+  <rect width="210" height="30" rx="12" fill="#1565C0"/>
+  <rect y="22" width="210" height="8" fill="#1565C0"/>
+  <text x="105" y="20" text-anchor="middle" fill="white" font-weight="700" font-size="11">PENDING_APPROVAL</text>
+  <text x="105" y="50" text-anchor="middle" font-size="9.5" fill="#0D47A1">Awaiting user decision</text>
+  <text x="105" y="65" text-anchor="middle" font-size="9" fill="#555">approval_request emitted</text>
+  <text x="105" y="79" text-anchor="middle" font-size="9" fill="#555">pipeline locked — no new runs</text>
+</g>
+
+<!-- PENDING_APPROVAL → APPROVED -->
+<path d="M 655 220 C 655 170 800 150 800 170" stroke="#2E7D32" stroke-width="2" fill="none" marker-end="url(#p2-arr-g)"/>
+<rect x="680" y="152" width="92" height="28" rx="4" fill="#E8F5E9"/>
+<text x="726" y="163.5" text-anchor="middle" font-size="9" fill="#2E7D32" font-weight="600">decision:</text>
+<text x="726" y="174.5" text-anchor="middle" font-size="9" fill="#2E7D32" font-weight="600">APPROVE</text>
+
+<!-- PENDING_APPROVAL → REJECTED -->
+<path d="M 655 310 C 655 360 800 380 800 360" stroke="#C62828" stroke-width="2" fill="none" marker-end="url(#p2-arr-r)"/>
+<rect x="680" y="352" width="92" height="28" rx="4" fill="#FFEBEE"/>
+<text x="726" y="363.5" text-anchor="middle" font-size="9" fill="#C62828" font-weight="600">decision:</text>
+<text x="726" y="374.5" text-anchor="middle" font-size="9" fill="#C62828" font-weight="600">REJECT</text>
+
+<!-- ── STATE: APPROVED (x=800, y=130, w=165, h=100) ── -->
+<g class="hoverable" data-tip="s-approved" transform="translate(800,130)">
+  <rect width="165" height="100" rx="12" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2.5"/>
+  <rect width="165" height="30" rx="12" fill="#2E7D32"/>
+  <rect y="22" width="165" height="8" fill="#2E7D32"/>
+  <text x="82" y="20" text-anchor="middle" fill="white" font-weight="700" font-size="12">APPROVED</text>
+  <text x="82" y="52" text-anchor="middle" font-size="9.5" fill="#1B5E20">Lockfile released</text>
+  <text x="82" y="66" text-anchor="middle" font-size="9" fill="#555">approval_gateway.decide()</text>
+  <text x="82" y="80" text-anchor="middle" font-size="9" fill="#555">→ _FINAL[session_id] returned</text>
+  <text x="82" y="94" text-anchor="middle" font-size="9" fill="#888">Can re-run pipeline</text>
+</g>
+
+<!-- ── STATE: REJECTED (x=800, y=320, w=165, h=100) ── -->
+<g class="hoverable" data-tip="s-rejected" transform="translate(800,320)">
+  <rect width="165" height="100" rx="12" fill="#FFEBEE" stroke="#C62828" stroke-width="2.5"/>
+  <rect width="165" height="30" rx="12" fill="#C62828"/>
+  <rect y="22" width="165" height="8" fill="#C62828"/>
+  <text x="82" y="20" text-anchor="middle" fill="white" font-weight="700" font-size="12">REJECTED</text>
+  <text x="82" y="52" text-anchor="middle" font-size="9.5" fill="#B71C1C">Lockfile withheld</text>
+  <text x="82" y="66" text-anchor="middle" font-size="9" fill="#555">pending_approval = None</text>
+  <text x="82" y="80" text-anchor="middle" font-size="9" fill="#555">_FINAL[sid] discarded</text>
+  <text x="82" y="94" text-anchor="middle" font-size="9" fill="#888">User can re-run pipeline</text>
+</g>
+
+<!-- APPROVED → ACTIVE (re-run) -->
+<path d="M 800 200 C 700 200 660 245 660 245" stroke="#00897B" stroke-width="1.5" fill="none" stroke-dasharray="5,4" marker-end="url(#p2-arr)"/>
+<text x="730" y="214" text-anchor="middle" font-size="8.5" fill="#00695C">re-run</text>
+
+<!-- REJECTED → ACTIVE (re-run) -->
+<path d="M 800 390 C 700 390 660 310 660 310" stroke="#00897B" stroke-width="1.5" fill="none" stroke-dasharray="5,4" marker-end="url(#p2-arr)"/>
+<text x="730" y="410" text-anchor="middle" font-size="8.5" fill="#00695C">re-run</text>
+
+<!-- ── STATE: CLOSED ── -->
+<g class="hoverable" data-tip="s-closed" transform="translate(1060,230)">
+  <rect width="165" height="90" rx="12" fill="#EFEBE9" stroke="#4E342E" stroke-width="2"/>
+  <rect width="165" height="30" rx="12" fill="#4E342E"/>
+  <rect y="22" width="165" height="8" fill="#4E342E"/>
+  <text x="82" y="20" text-anchor="middle" fill="white" font-weight="700" font-size="12">CLOSED</text>
+  <text x="82" y="52" text-anchor="middle" font-size="9.5" fill="#3E2723">WS connection closed</text>
+  <text x="82" y="66" text-anchor="middle" font-size="9" fill="#555">Session archived</text>
+  <text x="82" y="80" text-anchor="middle" font-size="9" fill="#555">No further operations</text>
+</g>
+
+<!-- ANY → CLOSED arrows -->
+<path d="M 965 180 C 1010 180 1040 240 1060 255" stroke="#4E342E" stroke-width="1.5" fill="none" stroke-dasharray="5,4" marker-end="url(#p2-arr)"/>
+<path d="M 965 370 C 1010 370 1040 310 1060 295" stroke="#4E342E" stroke-width="1.5" fill="none" stroke-dasharray="5,4" marker-end="url(#p2-arr)"/>
+<text x="1010" y="175" font-size="8.5" fill="#4E342E" text-anchor="middle">DELETE /session</text>
+<text x="1010" y="390" font-size="8.5" fill="#4E342E" text-anchor="middle">or WS drop</text>
+
+<!-- Legend box -->
+<rect x="40" y="520" width="600" height="175" rx="10" fill="#FAFAFA" stroke="#DDD" stroke-width="1"/>
+<text x="340" y="543" text-anchor="middle" font-size="12" font-weight="700" fill="#333">Approval Gateway State  (hitl/approval_gateway.py)</text>
+<line x1="60" y1="552" x2="620" y2="552" stroke="#DDD" stroke-width="1"/>
+<text x="60" y="570" font-size="10" fill="#555" font-weight="600">_PENDING: Dict[approval_id, ApprovalRequest]</text>
+<text x="60" y="584" font-size="9.5" fill="#888">Stores pending approval requests awaiting decision</text>
+<text x="60" y="602" font-size="10" fill="#555" font-weight="600">_FINAL: Dict[session_id, ResolveResponse]</text>
+<text x="60" y="616" font-size="9.5" fill="#888">Resolved lockfile held until APPROVE is received — never auto-released</text>
+<text x="60" y="634" font-size="10" fill="#555" font-weight="600">decide(response: ApprovalResponse) flow:</text>
+<text x="60" y="649" font-size="9.5" fill="#2E7D32">APPROVE → pop _PENDING + pop _FINAL[sid] → return ResolveResponse to caller</text>
+<text x="60" y="664" font-size="9.5" fill="#C62828">REJECT  → pop _PENDING + discard _FINAL[sid] → return None</text>
+<text x="60" y="682" font-size="9" fill="#888">Double-approval prevented: KeyError on second call to decide() for same approval_id</text>
+
+<!-- asyncio.Lock annotation -->
+<rect x="680" y="520" width="650" height="120" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="1.5"/>
+<text x="1005" y="543" text-anchor="middle" font-size="12" font-weight="700" fill="#333">Per-Session Pipeline Lock</text>
+<line x1="700" y1="552" x2="1320" y2="552" stroke="#F9A825" stroke-width="1"/>
+<text x="700" y="570" font-size="10" fill="#555" font-family="monospace">_pipeline_locks: Dict[session_id, asyncio.Lock]</text>
+<text x="700" y="586" font-size="9.5" fill="#555">Prevents concurrent solver runs for the same session.</text>
+<text x="700" y="600" font-size="9.5" fill="#555">Even if user sends two messages rapidly, only one pipeline</text>
+<text x="700" y="614" font-size="9.5" fill="#555">runs at a time. Lock released in finally block.</text>
+<text x="700" y="630" font-size="9.5" fill="#888">Acquired: _run_resolve_pipeline() entry  ·  Released: pipeline exit or exception</text>
+
+</svg>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PANEL 3 — WEBSOCKET PROTOCOL (Sequence Diagram)
+═══════════════════════════════════════════════════════ -->
+<div class="panel" id="p3">
+<svg viewBox="0 0 1380 1080" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="p3-r" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#1976D2"/></marker>
+  <marker id="p3-l" markerWidth="9" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="9 0,0 3.5,9 7" fill="#1976D2"/></marker>
+  <marker id="p3-pr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#7B1FA2"/></marker>
+  <marker id="p3-pl" markerWidth="9" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="9 0,0 3.5,9 7" fill="#7B1FA2"/></marker>
+  <marker id="p3-gr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#2E7D32"/></marker>
+  <marker id="p3-or" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#E65100"/></marker>
+</defs>
+
+<!-- Title -->
+<text x="690" y="30" text-anchor="middle" font-size="17" font-weight="700" fill="#1A1A2E">WebSocket Protocol — Message Sequence</text>
+<text x="690" y="50" text-anchor="middle" font-size="11" fill="#666">Full HITL session: session creation → pipeline → approval  +  Q&amp;A and search sub-flows</text>
+
+<!-- Swimlane headers (5 lanes) -->
+<!-- Lane centers: Browser=140, FastAPI=330, Orchestrator=560, Pipeline=790, LLM/OSV=1040 -->
+<rect x="25"   y="62" width="225" height="32" rx="6" fill="#BBDEFB" stroke="#1976D2" stroke-width="1.2"/>
+<rect x="260"  y="62" width="185" height="32" rx="6" fill="#C8E6C9" stroke="#2E7D32" stroke-width="1.2"/>
+<rect x="455"  y="62" width="210" height="32" rx="6" fill="#B2DFDB" stroke="#00695C" stroke-width="1.2"/>
+<rect x="675"  y="62" width="220" height="32" rx="6" fill="#D1C4E9" stroke="#512DA8" stroke-width="1.2"/>
+<rect x="905"  y="62" width="220" height="32" rx="6" fill="#FFCCBC" stroke="#BF360C" stroke-width="1.2"/>
+<text x="137"  y="83" text-anchor="middle" font-size="11" font-weight="700" fill="#0D47A1">Browser / Frontend</text>
+<text x="352"  y="83" text-anchor="middle" font-size="11" font-weight="700" fill="#1B5E20">FastAPI Router</text>
+<text x="560"  y="83" text-anchor="middle" font-size="11" font-weight="700" fill="#004D40">Orchestrator</text>
+<text x="785"  y="83" text-anchor="middle" font-size="11" font-weight="700" fill="#311B92">Pipeline Stages</text>
+<text x="1015" y="83" text-anchor="middle" font-size="11" font-weight="700" fill="#7F0000">LLM / OSV.dev</text>
+
+<!-- Vertical swimlane lines -->
+<line x1="137"  y1="94" x2="137"  y2="1070" stroke="#90CAF9" stroke-width="1.5" stroke-dasharray="3,3"/>
+<line x1="352"  y1="94" x2="352"  y2="1070" stroke="#A5D6A7" stroke-width="1.5" stroke-dasharray="3,3"/>
+<line x1="560"  y1="94" x2="560"  y2="1070" stroke="#80CBC4" stroke-width="1.5" stroke-dasharray="3,3"/>
+<line x1="785"  y1="94" x2="785"  y2="1070" stroke="#B39DDB" stroke-width="1.5" stroke-dasharray="3,3"/>
+<line x1="1015" y1="94" x2="1015" y2="1070" stroke="#FFAB91" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+<!-- ── FLOW 1: Session Create + Resolution ── -->
+<rect x="25" y="96" width="50" height="14" rx="3" fill="#E0F2F1"/>
+<text x="78" y="107" font-size="9.5" fill="#004D40" font-weight="600">① Main Resolution Flow</text>
+
+<!-- 1. POST /session -->
+<line x1="137" y1="122" x2="345" y2="122" stroke="#1976D2" stroke-width="1.5" marker-end="url(#p3-r)"/>
+<rect x="150" y="111" width="180" height="14" rx="3" fill="#E3F2FD"/>
+<text x="240" y="121.5" text-anchor="middle" font-size="9" fill="#1976D2">POST /api/dependency_resolver/session</text>
+
+<!-- 2. ← {session_id, websocket_url} -->
+<line x1="352" y1="140" x2="144" y2="140" stroke="#1976D2" stroke-width="1.5" marker-end="url(#p3-l)"/>
+<rect x="170" y="129" width="145" height="14" rx="3" fill="#E3F2FD"/>
+<text x="243" y="139.5" text-anchor="middle" font-size="9" fill="#1976D2">{session_id, websocket_url}</text>
+
+<!-- 3. WS CONNECT -->
+<line x1="137" y1="160" x2="345" y2="160" stroke="#7B1FA2" stroke-width="2" stroke-dasharray="7,3" marker-end="url(#p3-pr)"/>
+<rect x="145" y="149" width="170" height="14" rx="3" fill="#F3E5F5"/>
+<text x="230" y="159.5" text-anchor="middle" font-size="9" fill="#7B1FA2" font-weight="600">WS CONNECT  /chat/{session_id}</text>
+
+<!-- 4. orchestrator.connect() -->
+<line x1="352" y1="176" x2="553" y2="176" stroke="#00695C" stroke-width="1.5" marker-end="url(#p3-gr)"/>
+<text x="453" y="171" text-anchor="middle" font-size="8.5" fill="#00695C">orchestrator.connect(ws, sid)</text>
+
+<!-- 5. Replay history + auto-trigger pipeline -->
+<line x1="560" y1="192" x2="789" y2="192" stroke="#512DA8" stroke-width="1.5" marker-end="url(#p3-gr)"/>
+<text x="675" y="187" text-anchor="middle" font-size="8.5" fill="#512DA8">auto-start pipeline (first connect)</text>
+
+<!-- 6. solver_event: parsing -->
+<line x1="560" y1="210" x2="144" y2="210" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#p3-pl)"/>
+<rect x="168" y="199" width="360" height="14" rx="3" fill="#F3E5F5"/>
+<text x="348" y="209.5" text-anchor="middle" font-size="9" fill="#7B1FA2">solver_event  {"stage":"parsing", "text":"Parsing manifest…"}</text>
+
+<!-- 7. solver_event: fetching -->
+<line x1="785" y1="228" x2="560" y2="228" stroke="#512DA8" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="560" y1="228" x2="144" y2="228" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#p3-pl)"/>
+<rect x="168" y="217" width="370" height="14" rx="3" fill="#F3E5F5"/>
+<text x="353" y="227.5" text-anchor="middle" font-size="9" fill="#7B1FA2">solver_event  {"stage":"fetching", "text":"Building graph (×N registry calls)…"}</text>
+
+<!-- 8. solver_event: solving -->
+<line x1="560" y1="246" x2="144" y2="246" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#p3-pl)"/>
+<rect x="168" y="235" width="355" height="14" rx="3" fill="#F3E5F5"/>
+<text x="345" y="245.5" text-anchor="middle" font-size="9" fill="#7B1FA2">solver_event  {"stage":"solving", "text":"Running PubGrub [stable]…"}</text>
+
+<!-- 9. solver_event: auditing -->
+<line x1="785" y1="264" x2="560" y2="264" stroke="#512DA8" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="1015" y1="264" x2="785" y2="264" stroke="#BF360C" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="560" y1="264" x2="144" y2="264" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#p3-pl)"/>
+<rect x="168" y="253" width="365" height="14" rx="3" fill="#F3E5F5"/>
+<text x="350" y="263.5" text-anchor="middle" font-size="9" fill="#7B1FA2">solver_event  {"stage":"auditing",  "text":"CVE + license scan…"}</text>
+<text x="900" y="258" font-size="8.5" fill="#BF360C" text-anchor="middle">POST osv.dev</text>
+
+<!-- 10. agent_message streaming tokens -->
+<line x1="1015" y1="285" x2="560" y2="285" stroke="#BF360C" stroke-width="1" stroke-dasharray="3,3"/>
+<line x1="560" y1="285" x2="144" y2="285" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#p3-pl)"/>
+<rect x="168" y="274" width="350" height="14" rx="3" fill="#F3E5F5"/>
+<text x="343" y="284.5" text-anchor="middle" font-size="9" fill="#7B1FA2">agent_message  {"delta":"The ","done":false}  ×N tokens</text>
+<text x="788" y="279" font-size="8.5" fill="#BF360C" text-anchor="start">Azure stream</text>
+
+<!-- 11. agent_message done:true -->
+<line x1="560" y1="302" x2="144" y2="302" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#p3-pl)"/>
+<rect x="168" y="291" width="345" height="14" rx="3" fill="#F3E5F5"/>
+<text x="340" y="301.5" text-anchor="middle" font-size="9" fill="#7B1FA2">agent_message  {"text":"&lt;full explanation&gt;","done":true}</text>
+
+<!-- 12. approval_request -->
+<line x1="560" y1="322" x2="144" y2="322" stroke="#1565C0" stroke-width="2" stroke-dasharray="0" marker-end="url(#p3-pl)"/>
+<rect x="145" y="311" width="380" height="14" rx="3" fill="#E3F2FD"/>
+<text x="335" y="321.5" text-anchor="middle" font-size="9" fill="#1565C0" font-weight="600">approval_request  {approval_id, lockfile, report, conflicts[], stats}</text>
+
+<!-- 13. Browser displays InlineApproval UI -->
+<rect x="30" y="334" width="215" height="14" rx="3" fill="#E3F2FD"/>
+<text x="137" y="344" text-anchor="middle" font-size="9" fill="#1565C0">User reviews — InlineApproval UI</text>
+
+<!-- 14. approval_response: APPROVE -->
+<line x1="137" y1="362" x2="553" y2="362" stroke="#2E7D32" stroke-width="2" marker-end="url(#p3-pr)"/>
+<rect x="145" y="351" width="370" height="14" rx="3" fill="#E8F5E9"/>
+<text x="330" y="361.5" text-anchor="middle" font-size="9" fill="#2E7D32" font-weight="600">approval_response  {"decision":"APPROVE","comment":"…"}</text>
+
+<!-- 15. system: approved -->
+<line x1="560" y1="380" x2="144" y2="380" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#p3-pl)"/>
+<rect x="168" y="369" width="350" height="14" rx="3" fill="#F3E5F5"/>
+<text x="343" y="379.5" text-anchor="middle" font-size="9" fill="#7B1FA2">system  {"text":"✓ Approved. Lockfile is ready for download."}</text>
+
+<!-- ── FLOW 2: Conversational Q&A ── -->
+<line x1="25" y1="405" x2="1355" y2="405" stroke="#DDD" stroke-width="1" stroke-dasharray="6,4"/>
+<rect x="25" y="408" width="50" height="14" rx="3" fill="#FFF3E0"/>
+<text x="78" y="419" font-size="9.5" fill="#E65100" font-weight="600">② Conversational Q&amp;A Sub-flow</text>
+
+<!-- user_message -->
+<line x1="137" y1="436" x2="553" y2="436" stroke="#7B1FA2" stroke-width="1.5" marker-end="url(#p3-pr)"/>
+<rect x="145" y="425" width="380" height="14" rx="3" fill="#F3E5F5"/>
+<text x="335" y="435.5" text-anchor="middle" font-size="9" fill="#7B1FA2">user_message  {"text":"Why is flask conflicting with werkzeug?"}</text>
+
+<!-- handle_message → intent: Q&A -->
+<text x="560" y="453" text-anchor="middle" font-size="8.5" fill="#004D40">handle_message() → intent: Q&amp;A</text>
+
+<!-- stream_chat_response call -->
+<line x1="560" y1="464" x2="1008" y2="464" stroke="#BF360C" stroke-width="1.5" marker-end="url(#p3-or)"/>
+<rect x="620" y="453" width="360" height="14" rx="3" fill="#FFCCBC"/>
+<text x="800" y="463.5" text-anchor="middle" font-size="9" fill="#BF360C">stream_chat_response(user_msg, history, eco, stats)</text>
+
+<!-- token stream back -->
+<line x1="1015" y1="480" x2="560" y2="480" stroke="#BF360C" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#p3-gr)"/>
+<text x="788" y="476" font-size="8.5" fill="#BF360C" text-anchor="middle">token stream (Azure OpenAI)</text>
+
+<!-- agent_message deltas -->
+<line x1="560" y1="496" x2="144" y2="496" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#p3-pl)"/>
+<rect x="168" y="485" width="355" height="14" rx="3" fill="#F3E5F5"/>
+<text x="345" y="495.5" text-anchor="middle" font-size="9" fill="#7B1FA2">agent_message  {delta} × N  →  agent_message {done:true}</text>
+
+<!-- ── FLOW 3: Web Search ── -->
+<line x1="25" y1="520" x2="1355" y2="520" stroke="#DDD" stroke-width="1" stroke-dasharray="6,4"/>
+<rect x="25" y="523" width="50" height="14" rx="3" fill="#FBE9E7"/>
+<text x="78" y="534" font-size="9.5" fill="#BF360C" font-weight="600">③ Web Search Sub-flow</text>
+
+<!-- user_message: search -->
+<line x1="137" y1="552" x2="553" y2="552" stroke="#7B1FA2" stroke-width="1.5" marker-end="url(#p3-pr)"/>
+<rect x="155" y="541" width="360" height="14" rx="3" fill="#F3E5F5"/>
+<text x="335" y="551.5" text-anchor="middle" font-size="9" fill="#7B1FA2">user_message  {"text":"search CVE flask 2.3.0"}</text>
+
+<!-- intent: search -->
+<text x="560" y="569" text-anchor="middle" font-size="8.5" fill="#004D40">handle_message() → intent: search</text>
+
+<!-- build_search_query (LLM) -->
+<line x1="560" y1="580" x2="1008" y2="580" stroke="#BF360C" stroke-width="1.5" marker-end="url(#p3-or)"/>
+<text x="784" y="576" text-anchor="middle" font-size="8.5" fill="#BF360C">build_search_query() → concise query string</text>
+
+<!-- SearchTool → Web -->
+<line x1="785" y1="597" x2="1008" y2="597" stroke="#E65100" stroke-width="1.5" marker-end="url(#p3-or)"/>
+<text x="897" y="593" text-anchor="middle" font-size="8.5" fill="#E65100">SearchTool.search(query) → HTTP fetch</text>
+
+<!-- search results back -->
+<line x1="1015" y1="614" x2="567" y2="614" stroke="#E65100" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#p3-gr)"/>
+<text x="791" y="610" text-anchor="middle" font-size="8.5" fill="#E65100">List[SearchResult]</text>
+
+<!-- search_event to client -->
+<line x1="560" y1="630" x2="144" y2="630" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#p3-pl)"/>
+<rect x="168" y="619" width="355" height="14" rx="3" fill="#F3E5F5"/>
+<text x="345" y="629.5" text-anchor="middle" font-size="9" fill="#7B1FA2">search_event  {"stage":"results","query":"…","results":[…]}</text>
+
+<!-- synthesise_search (LLM) -->
+<line x1="560" y1="648" x2="1008" y2="648" stroke="#BF360C" stroke-width="1.5" marker-end="url(#p3-or)"/>
+<text x="784" y="644" text-anchor="middle" font-size="8.5" fill="#BF360C">synthesise_search(question, results, eco)</text>
+
+<!-- streamed synthesis -->
+<line x1="560" y1="664" x2="144" y2="664" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#p3-pl)"/>
+<rect x="168" y="653" width="355" height="14" rx="3" fill="#F3E5F5"/>
+<text x="345" y="663.5" text-anchor="middle" font-size="9" fill="#7B1FA2">agent_message  {delta} × N  →  agent_message {done:true}</text>
+
+<!-- ── Frame format reference box ── -->
+<rect x="40" y="700" width="1300" height="160" rx="10" fill="#F5F5F5" stroke="#DDD" stroke-width="1"/>
+<text x="690" y="722" text-anchor="middle" font-size="12" font-weight="700" fill="#333">WebSocket Frame Format  (schemas.py  ·  WSMessage)</text>
+<line x1="60" y1="730" x2="1320" y2="730" stroke="#DDD" stroke-width="1"/>
+<!-- Inbound -->
+<text x="70" y="748" font-size="10" font-weight="600" fill="#7B1FA2">Inbound (client → server)</text>
+<text x="70" y="764" font-family="monospace" font-size="9.5" fill="#4A148C">{"type":"user_message",     "session_id":"…", "payload":{"text":"…"}}</text>
+<text x="70" y="779" font-family="monospace" font-size="9.5" fill="#4A148C">{"type":"approval_response","session_id":"…", "payload":{"decision":"APPROVE|REJECT","comment":"…"}}</text>
+<!-- Outbound -->
+<text x="690" y="748" font-size="10" font-weight="600" fill="#1565C0">Outbound (server → client)</text>
+<text x="690" y="764" font-family="monospace" font-size="9.5" fill="#0D47A1">{"type":"…","session_id":"…","message_id":"…","timestamp":"…","payload":{…},"done":bool}</text>
+<text x="70" y="798" font-size="10" font-weight="600" fill="#333">Frame Types:</text>
+<text x="70" y="812" font-size="9.5" fill="#555">solver_event · agent_message · search_event · approval_request · approval_response · system · error · user_message</text>
+<text x="70" y="828" font-size="9" fill="#888">Streaming frames: done=false (delta only) · Final frame: done=true (full text) · Persistence: only done=true frames stored</text>
+<text x="70" y="844" font-size="9" fill="#888">Max payload: 64KB enforced at FastAPI ws_max_size + explicit size check in handler loop</text>
+
+</svg>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PANEL 4 — FRONTEND DATA FLOW
+═══════════════════════════════════════════════════════ -->
+<div class="panel" id="p4">
+<svg viewBox="0 0 1380 960" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="p4-t" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#00695C"/></marker>
+  <marker id="p4-b" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#1976D2"/></marker>
+  <marker id="p4-p" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#7B1FA2"/></marker>
+</defs>
+
+<!-- Title -->
+<text x="690" y="30" text-anchor="middle" font-size="17" font-weight="700" fill="#1A1A2E">Frontend Data Flow</text>
+<text x="690" y="50" text-anchor="middle" font-size="11" fill="#666">Redux Store · Service Layer · Component Tree  (Next.js / React / TypeScript)</text>
+
+<!-- ═ LEFT COLUMN: Service Layer (x=20-410) ═ -->
+<rect x="20" y="62" width="390" height="22" rx="6" fill="#B2DFDB" stroke="#00695C" stroke-width="1.2"/>
+<text x="215" y="77" text-anchor="middle" font-size="11" font-weight="700" fill="#004D40">Service Layer  ·  src/services/</text>
+
+<!-- apiClient box -->
+<g class="hoverable" data-tip="api-client" transform="translate(30,96)">
+  <rect width="370" height="70" rx="8" fill="#E0F2F1" stroke="#00897B" stroke-width="1.2"/>
+  <rect width="370" height="24" rx="8" fill="#00695C"/>
+  <rect y="16" width="370" height="8" fill="#00695C"/>
+  <text x="185" y="17" text-anchor="middle" fill="white" font-size="11" font-weight="600">apiClient  (Axios)  —  services/api.ts</text>
+  <text x="14" y="38" font-size="10" fill="#555">Base URL: NEXT_PUBLIC_API_URL || "http://localhost:8000"</text>
+  <text x="14" y="52" font-size="10" fill="#555">Methods: get() · post() · put() · delete()  (generic typed)</text>
+  <text x="14" y="66" font-size="10" fill="#555">Interceptors: Auth header inject · 401 → clear token + redirect</text>
+</g>
+
+<!-- dependencyResolverService box -->
+<g class="hoverable" data-tip="dr-service" transform="translate(30,180)">
+  <rect width="370" height="145" rx="8" fill="#E0F2F1" stroke="#00897B" stroke-width="1.2"/>
+  <rect width="370" height="24" rx="8" fill="#00695C"/>
+  <rect y="16" width="370" height="8" fill="#00695C"/>
+  <text x="185" y="17" text-anchor="middle" fill="white" font-size="11" font-weight="600">dependencyResolverService  —  services/dependencyResolverService.ts</text>
+  <text x="14" y="38" font-family="monospace" font-size="9.5" fill="#004D40">createSession(dispatch, eco, manifest, strategy) → sessionId</text>
+  <text x="14" y="53" font-family="monospace" font-size="9.5" fill="#004D40">connectWS(dispatch, sessionId) → WebSocket</text>
+  <text x="14" y="68" font-family="monospace" font-size="9.5" fill="#004D40">sendMessage(sessionId, text) → void</text>
+  <text x="14" y="83" font-family="monospace" font-size="9.5" fill="#004D40">sendApproval(sessionId, decision, comment?) → void</text>
+  <text x="14" y="98" font-family="monospace" font-size="9.5" fill="#004D40">deleteSession(sessionId) → Promise&lt;void&gt;</text>
+  <text x="14" y="113" font-family="monospace" font-size="9.5" fill="#004D40">disconnectWS() · isWSConnected() → bool</text>
+  <text x="14" y="130" font-size="9.5" fill="#888">Module state: _ws, _reconnectAttempts, _intentionalClose, _currentSessionId</text>
+  <text x="14" y="144" font-size="9.5" fill="#888">Reconnect: min(1000×2^n, 30000)ms · MAX_RECONNECT_ATTEMPTS=5</text>
+</g>
+
+<!-- WebSocket instance box -->
+<g class="hoverable" data-tip="ws-instance" transform="translate(30,340)">
+  <rect width="370" height="100" rx="8" fill="#EDE7F6" stroke="#7B1FA2" stroke-width="1.2"/>
+  <rect width="370" height="24" rx="8" fill="#6A1B9A"/>
+  <rect y="16" width="370" height="8" fill="#6A1B9A"/>
+  <text x="185" y="17" text-anchor="middle" fill="white" font-size="11" font-weight="600">WebSocket Instance  (native browser API)</text>
+  <text x="14" y="39" font-size="10" fill="#555">onopen  → dispatch(setConnected(true)), setStatus("active")</text>
+  <text x="14" y="54" font-size="10" fill="#555">onmessage → JSON.parse(ev.data) → dispatch(frameReceived(frame))</text>
+  <text x="14" y="69" font-size="10" fill="#555">onclose  → if !intentionalClose: _scheduleReconnect()</text>
+  <text x="14" y="84" font-size="10" fill="#555">onerror  → dispatch(setConnected(false))</text>
+  <text x="14" y="99" font-size="9.5" fill="#888">URL: ws://localhost:8000/api/dependency_resolver/chat/{sessionId}</text>
+</g>
+
+<!-- localStorage box -->
+<g transform="translate(30,460)">
+  <rect width="370" height="70" rx="8" fill="#FFF8E1" stroke="#F9A825" stroke-width="1.2"/>
+  <rect width="370" height="24" rx="8" fill="#F57F17"/>
+  <rect y="16" width="370" height="8" fill="#F57F17"/>
+  <text x="185" y="17" text-anchor="middle" fill="white" font-size="11" font-weight="600">localStorage  (client-side persistence)</text>
+  <text x="14" y="38" font-family="monospace" font-size="9.5" fill="#555">key: "dep-resolver:sessions"  →  StoredSession[]  (max 30)</text>
+  <text x="14" y="53" font-size="9.5" fill="#555">Written on: startSession() · handleDeleteSession()</text>
+  <text x="14" y="67" font-size="9.5" fill="#555">Read on: component mount  (hydrate sidebar session list)</text>
+</g>
+
+<!-- ═ CENTER COLUMN: Redux Store (x=430-870) ═ -->
+<rect x="430" y="62" width="440" height="22" rx="6" fill="#B2DFDB" stroke="#00695C" stroke-width="1.2"/>
+<text x="650" y="77" text-anchor="middle" font-size="11" font-weight="700" fill="#004D40">Redux Store  ·  store/slices/dependencyResolverSlice.ts</text>
+
+<!-- State fields -->
+<g class="hoverable" data-tip="redux-state" transform="translate(440,96)">
+  <rect width="420" height="240" rx="8" fill="#E0F2F1" stroke="#00897B" stroke-width="1.2"/>
+  <rect width="420" height="24" rx="8" fill="#00695C"/>
+  <rect y="16" width="420" height="8" fill="#00695C"/>
+  <text x="210" y="17" text-anchor="middle" fill="white" font-size="11" font-weight="600">HITLSessionState  (initial state)</text>
+  <text x="14" y="40" font-size="10" fill="#555">sessionId:       <tspan font-style="italic" fill="#888">string | null</tspan></text>
+  <text x="14" y="54" font-size="10" fill="#555">wsUrl:           <tspan font-style="italic" fill="#888">string | null</tspan></text>
+  <text x="14" y="68" font-size="10" fill="#555">status:          <tspan font-style="italic" fill="#888">SessionStatus  ("created"|"active"|"pending_approval"|…)</tspan></text>
+  <text x="14" y="82" font-size="10" fill="#555">ecosystem:       <tspan font-style="italic" fill="#888">"pypi"|"npm"|"maven"|"cargo"</tspan></text>
+  <text x="14" y="96" font-size="10" fill="#555">manifest:        <tspan font-style="italic" fill="#888">string</tspan></text>
+  <text x="14" y="110" font-size="10" fill="#555">strategy:        <tspan font-style="italic" fill="#888">"stable"|"latest"|"minimal"</tspan></text>
+  <text x="14" y="124" font-size="10" fill="#555">chatTitle:       <tspan font-style="italic" fill="#888">string | null</tspan></text>
+  <text x="14" y="138" font-size="10" fill="#555">entries:         <tspan font-style="italic" fill="#888">ChatEntry[]  (full message history)</tspan></text>
+  <text x="14" y="152" font-size="10" fill="#555">pendingApproval: <tspan font-style="italic" fill="#888">ApprovalRequestPayload | null</tspan></text>
+  <text x="14" y="166" font-size="10" fill="#555">isConnected:     <tspan font-style="italic" fill="#888">boolean</tspan></text>
+  <text x="14" y="180" font-size="10" fill="#555">isStreaming:     <tspan font-style="italic" fill="#888">boolean</tspan></text>
+  <text x="14" y="194" font-size="10" fill="#555">finalLockfile:   <tspan font-style="italic" fill="#888">string | null</tspan></text>
+  <text x="14" y="208" font-size="10" fill="#555">finalReport:     <tspan font-style="italic" fill="#888">string | null</tspan></text>
+  <text x="14" y="222" font-size="10" fill="#555">error:           <tspan font-style="italic" fill="#888">string | null</tspan></text>
+</g>
+
+<!-- Actions -->
+<g class="hoverable" data-tip="redux-actions" transform="translate(440,352)">
+  <rect width="420" height="185" rx="8" fill="#E8F5E9" stroke="#388E3C" stroke-width="1.2"/>
+  <rect width="420" height="24" rx="8" fill="#2E7D32"/>
+  <rect y="16" width="420" height="8" fill="#2E7D32"/>
+  <text x="210" y="17" text-anchor="middle" fill="white" font-size="11" font-weight="600">Action Creators  (dispatched by service / components)</text>
+  <text x="14" y="38" font-family="monospace" font-size="9.5" fill="#1B5E20">setManifest({manifest, ecosystem, strategy})</text>
+  <text x="14" y="53" font-family="monospace" font-size="9.5" fill="#1B5E20">sessionCreated({sessionId, wsUrl, title?})</text>
+  <text x="14" y="68" font-family="monospace" font-size="9.5" fill="#1B5E20">setChatTitle(string)</text>
+  <text x="14" y="83" font-family="monospace" font-size="9.5" fill="#1B5E20">setConnected(boolean)</text>
+  <text x="14" y="98" font-family="monospace" font-size="9.5" fill="#1B5E20">frameReceived(WSFrame)  ← core reducer — branches per MessageType</text>
+  <text x="14" y="113" font-family="monospace" font-size="9.5" fill="#1B5E20">userMessageSent({text})  ← echo user message locally</text>
+  <text x="14" y="128" font-family="monospace" font-size="9.5" fill="#1B5E20">approvalDecided("APPROVE"|"REJECT")</text>
+  <text x="14" y="143" font-family="monospace" font-size="9.5" fill="#1B5E20">reset()  ← returns to initial state</text>
+  <text x="14" y="158" font-family="monospace" font-size="9.5" fill="#1B5E20">setError(string | null)</text>
+  <text x="14" y="175" font-size="9" fill="#888">frameReceived reducer: solver_event→push entry · agent_message→stream/append · approval_request→set pendingApproval</text>
+</g>
+
+<!-- ═ RIGHT COLUMN: Component Tree (x=885-1360) ═ -->
+<rect x="885" y="62" width="475" height="22" rx="6" fill="#BBDEFB" stroke="#1976D2" stroke-width="1.2"/>
+<text x="1122" y="77" text-anchor="middle" font-size="11" font-weight="700" fill="#0D47A1">Component Tree  ·  app/dependency-resolver/page.tsx</text>
+
+<g class="hoverable" data-tip="page" transform="translate(895,96)">
+  <rect width="455" height="440" rx="8" fill="#E3F2FD" stroke="#1976D2" stroke-width="1.2"/>
+  <rect width="455" height="24" rx="8" fill="#0D47A1"/>
+  <rect y="16" width="455" height="8" fill="#0D47A1"/>
+  <text x="227" y="17" text-anchor="middle" fill="white" font-size="11" font-weight="600">DependencyResolverPage  ('use client')</text>
+  <!-- Sidebar -->
+  <rect x="12" y="32" width="431" height="55" rx="6" fill="#BBDEFB" stroke="#1976D2" stroke-width="1"/>
+  <text x="227" y="47" text-anchor="middle" font-size="10" font-weight="600" fill="#0D47A1">Sidebar</text>
+  <text x="20" y="62" font-size="9.5" fill="#555">onSelect → handleSelectSession()  · onNew → handleNewSession()</text>
+  <text x="20" y="76" font-size="9.5" fill="#555">onDelete → handleDeleteSession()  · storedSessions from localStorage</text>
+  <!-- Manifest Editor -->
+  <rect x="12" y="95" width="431" height="55" rx="6" fill="#BBDEFB" stroke="#1976D2" stroke-width="1"/>
+  <text x="227" y="110" text-anchor="middle" font-size="10" font-weight="600" fill="#0D47A1">Manifest Editor  (textarea)</text>
+  <text x="20" y="125" font-size="9.5" fill="#555">detectEcosystem(text) → auto-detect from pasted content</text>
+  <text x="20" y="139" font-size="9.5" fill="#555">handleSubmit() → startSession() or sendMessage()</text>
+  <!-- Chat Thread -->
+  <rect x="12" y="158" width="431" height="190" rx="6" fill="#BBDEFB" stroke="#1976D2" stroke-width="1"/>
+  <text x="227" y="173" text-anchor="middle" font-size="10" font-weight="600" fill="#0D47A1">Chat Thread  (entries map)</text>
+  <rect x="22" y="180" width="411" height="22" rx="4" fill="#90CAF9"/>
+  <text x="227" y="194.5" text-anchor="middle" font-size="9.5" fill="#0D47A1">Bubble — user_message  (right-aligned, cyan bg)</text>
+  <rect x="22" y="206" width="411" height="22" rx="4" fill="#90CAF9"/>
+  <text x="227" y="220.5" text-anchor="middle" font-size="9.5" fill="#0D47A1">PipelineCard — solver_event group (collapsible stages)</text>
+  <rect x="22" y="232" width="411" height="22" rx="4" fill="#90CAF9"/>
+  <text x="227" y="246.5" text-anchor="middle" font-size="9.5" fill="#0D47A1">Bubble — agent_message (streaming tokens, left + avatar)</text>
+  <rect x="22" y="258" width="411" height="22" rx="4" fill="#90CAF9"/>
+  <text x="227" y="272.5" text-anchor="middle" font-size="9.5" fill="#0D47A1">Bubble — search_event (results list)</text>
+  <rect x="22" y="284" width="411" height="22" rx="4" fill="#CE93D8"/>
+  <text x="227" y="298.5" text-anchor="middle" font-size="9.5" fill="#4A148C">InlineApproval — approval_request (lockfile preview + decision)</text>
+  <text x="26" y="320" font-size="9" fill="#555">InlineApproval: onDecide(decision, comment)</text>
+  <text x="26" y="333" font-size="9" fill="#555">  → sendApproval(sessionId, decision, comment)</text>
+  <text x="26" y="346" font-size="9" fill="#555">  → dispatch(approvalDecided(decision))</text>
+  <!-- Input Bar -->
+  <rect x="12" y="356" width="431" height="36" rx="6" fill="#BBDEFB" stroke="#1976D2" stroke-width="1"/>
+  <text x="227" y="373" text-anchor="middle" font-size="10" font-weight="600" fill="#0D47A1">Input Bar  (textarea + submit)</text>
+  <text x="20" y="386" font-size="9.5" fill="#555">handleKey(e): Enter → handleSubmit()  (Shift+Enter = newline)</text>
+  <!-- useAppSelector readouts -->
+  <text x="14" y="410" font-size="9.5" fill="#0D47A1" font-weight="600">useAppSelector reads:</text>
+  <text x="14" y="424" font-size="9" fill="#555">sessionId · status · entries · isConnected · isStreaming · finalLockfile · ecosystem · chatTitle</text>
+  <text x="14" y="437" font-size="9" fill="#888">handleDownload() → createObjectURL blob · filename = ecosystem-specific (e.g. requirements.lock)</text>
+</g>
+
+<!-- Arrows: service → redux dispatch -->
+<line x1="400" y1="215" x2="432" y2="215" stroke="#00695C" stroke-width="1.5" marker-end="url(#p4-t)"/>
+<text x="416" y="210" text-anchor="middle" font-size="8" fill="#00695C">dispatch</text>
+
+<line x1="400" y1="290" x2="432" y2="290" stroke="#00695C" stroke-width="1.5" marker-end="url(#p4-t)"/>
+<text x="416" y="285" text-anchor="middle" font-size="8" fill="#00695C">dispatch</text>
+
+<line x1="400" y1="390" x2="432" y2="390" stroke="#00695C" stroke-width="1.5" marker-end="url(#p4-t)"/>
+<text x="416" y="385" text-anchor="middle" font-size="8" fill="#00695C">dispatch</text>
+
+<!-- Redux → Component (selector reads) -->
+<line x1="860" y1="220" x2="888" y2="220" stroke="#1976D2" stroke-width="1.5" marker-end="url(#p4-b)"/>
+<text x="874" y="215" text-anchor="middle" font-size="8" fill="#1976D2">select</text>
+
+<line x1="860" y1="450" x2="888" y2="450" stroke="#1976D2" stroke-width="1.5" marker-end="url(#p4-b)"/>
+<text x="874" y="445" text-anchor="middle" font-size="8" fill="#1976D2">select</text>
+
+<!-- Component → service calls -->
+<path d="M 895 350 C 860 350 840 310 840 300 L 800 300" stroke="#7B1FA2" stroke-width="1.5" fill="none" marker-end="url(#p4-p)"/>
+<text x="848" y="320" font-size="8" fill="#7B1FA2" text-anchor="middle">call</text>
+
+</svg>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PANEL 5 — DATA SCHEMAS (ER Diagram)
+═══════════════════════════════════════════════════════ -->
+<div class="panel" id="p5">
+<svg viewBox="0 0 1380 1000" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="p5-arr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+    <polygon points="0 0,9 3.5,0 7" fill="#555"/>
+  </marker>
+</defs>
+
+<!-- Title -->
+<text x="690" y="30" text-anchor="middle" font-size="17" font-weight="700" fill="#1A1A2E">Data Schemas  —  Pydantic (Backend)  +  TypeScript (Frontend)</text>
+<text x="690" y="50" text-anchor="middle" font-size="11" fill="#666">agents/dependency_resolver/schemas.py  ·  frontend/src/types/dependencyResolver.ts</text>
+
+<!-- ── BACKEND SECTION HEADER ── -->
+<rect x="20" y="62" width="680" height="18" rx="4" fill="#E0F2F1"/>
+<text x="360" y="75" text-anchor="middle" font-size="11" font-weight="700" fill="#004D40">Backend  —  Pydantic V2 Models  (Python)</text>
+<rect x="720" y="62" width="640" height="18" rx="4" fill="#FFF9C4"/>
+<text x="1040" y="75" text-anchor="middle" font-size="11" font-weight="700" fill="#5D4037">Solver Data Models</text>
+
+<!-- ── HITLSession ── -->
+<g class="hoverable" data-tip="schema-session" transform="translate(20,88)">
+  <rect width="300" height="210" rx="8" fill="#fff" stroke="#00897B" stroke-width="1.5"/>
+  <rect width="300" height="26" rx="8" fill="#00695C"/>
+  <rect y="18" width="300" height="8" fill="#00695C"/>
+  <text x="150" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">HITLSession</text>
+  <text x="10" y="43" font-size="9.5" fill="#555">session_id:        str  (UUID)</text>
+  <text x="10" y="57" font-size="9.5" fill="#555">user_id:           Optional[str]</text>
+  <text x="10" y="71" font-size="9.5" fill="#555">ecosystem:         Ecosystem</text>
+  <text x="10" y="85" font-size="9.5" fill="#555">manifest:          str</text>
+  <text x="10" y="99" font-size="9.5" fill="#555">strategy:          Strategy</text>
+  <text x="10" y="113" font-size="9.5" fill="#00897B" font-weight="600">status:            SessionStatus</text>
+  <text x="10" y="127" font-size="9.5" fill="#555">title:             str</text>
+  <text x="10" y="141" font-size="9.5" fill="#00897B" font-weight="600">messages:          List[ChatMessage]</text>
+  <text x="10" y="155" font-size="9.5" fill="#00897B" font-weight="600">pending_approval:  Optional[ApprovalRequest]</text>
+  <text x="10" y="169" font-size="9.5" fill="#555">trace_ids:         List[str]</text>
+  <text x="10" y="183" font-size="9.5" fill="#555">resolution_stats:  Dict</text>
+  <text x="10" y="197" font-size="9.5" fill="#555">created_at / updated_at: datetime</text>
+  <line x1="0" y1="204" x2="300" y2="204" stroke="#E0F2F1" stroke-width="1"/>
+  <text x="10" y="210" font-size="8.5" fill="#888">Persisted: state/hitl/{session_id}.json</text>
+</g>
+
+<!-- ── ChatMessage ── -->
+<g class="hoverable" data-tip="schema-chatmsg" transform="translate(340,88)">
+  <rect width="240" height="150" rx="8" fill="#fff" stroke="#00897B" stroke-width="1.5"/>
+  <rect width="240" height="26" rx="8" fill="#00695C"/>
+  <rect y="18" width="240" height="8" fill="#00695C"/>
+  <text x="120" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">ChatMessage</text>
+  <text x="10" y="43" font-size="9.5" fill="#555">message_id:  str (UUID)</text>
+  <text x="10" y="57" font-size="9.5" fill="#555">session_id:  str</text>
+  <text x="10" y="71" font-size="9.5" fill="#00897B" font-weight="600">type:        MessageType</text>
+  <text x="10" y="85" font-size="9.5" fill="#555">timestamp:   datetime</text>
+  <text x="10" y="99" font-size="9.5" fill="#555">payload:     Dict[str, Any]</text>
+  <text x="10" y="113" font-size="9.5" fill="#555">done:        bool</text>
+  <line x1="0" y1="120" x2="240" y2="120" stroke="#E0F2F1" stroke-width="1"/>
+  <text x="10" y="132" font-size="8.5" fill="#888">MessageType enum:</text>
+  <text x="10" y="145" font-size="8" fill="#888">USER_MESSAGE · AGENT_MESSAGE · SOLVER_EVENT</text>
+</g>
+
+<!-- HITLSession → ChatMessage relationship -->
+<line x1="320" y1="168" x2="340" y2="168" stroke="#00897B" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#p5-arr)"/>
+<text x="330" y="163" text-anchor="middle" font-size="8" fill="#00897B">1→*</text>
+
+<!-- ── ApprovalRequest ── -->
+<g class="hoverable" data-tip="schema-approval" transform="translate(340,256)">
+  <rect width="240" height="155" rx="8" fill="#fff" stroke="#1565C0" stroke-width="1.5"/>
+  <rect width="240" height="26" rx="8" fill="#1565C0"/>
+  <rect y="18" width="240" height="8" fill="#1565C0"/>
+  <text x="120" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">ApprovalRequest</text>
+  <text x="10" y="43" font-size="9.5" fill="#555">approval_id:       str (UUID)</text>
+  <text x="10" y="57" font-size="9.5" fill="#555">session_id:        str</text>
+  <text x="10" y="71" font-size="9.5" fill="#555">proposed_lockfile: str</text>
+  <text x="10" y="85" font-size="9.5" fill="#555">report_markdown:   str</text>
+  <text x="10" y="99" font-size="9.5" fill="#1565C0" font-weight="600">conflicts:         List[Conflict]</text>
+  <text x="10" y="113" font-size="9.5" fill="#555">stats:             Dict</text>
+  <text x="10" y="127" font-size="9.5" fill="#555">created_at:        datetime</text>
+  <line x1="0" y1="134" x2="240" y2="134" stroke="#E3F2FD" stroke-width="1"/>
+  <text x="10" y="146" font-size="8.5" fill="#888">Stored in approval_gateway._PENDING</text>
+</g>
+
+<!-- HITLSession → ApprovalRequest -->
+<line x1="200" y1="298" x2="340" y2="298" stroke="#1565C0" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#p5-arr)"/>
+<text x="270" y="293" text-anchor="middle" font-size="8" fill="#1565C0">0..1</text>
+
+<!-- ── WSMessage ── -->
+<g class="hoverable" data-tip="schema-wsmsg" transform="translate(20,320)">
+  <rect width="300" height="150" rx="8" fill="#fff" stroke="#7B1FA2" stroke-width="1.5"/>
+  <rect width="300" height="26" rx="8" fill="#6A1B9A"/>
+  <rect y="18" width="300" height="8" fill="#6A1B9A"/>
+  <text x="150" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">WSMessage  (wire format)</text>
+  <text x="10" y="43" font-size="9.5" fill="#7B1FA2" font-weight="600">type:        MessageType</text>
+  <text x="10" y="57" font-size="9.5" fill="#555">session_id:  str</text>
+  <text x="10" y="71" font-size="9.5" fill="#555">message_id:  str (UUID)</text>
+  <text x="10" y="85" font-size="9.5" fill="#555">timestamp:   datetime (ISO 8601)</text>
+  <text x="10" y="99" font-size="9.5" fill="#7B1FA2" font-weight="600">payload:     Dict[str, Any]  (varies by type)</text>
+  <text x="10" y="113" font-size="9.5" fill="#555">done:        bool</text>
+  <line x1="0" y1="120" x2="300" y2="120" stroke="#EDE7F6" stroke-width="1"/>
+  <text x="10" y="133" font-size="8.5" fill="#888">Max size: 64KB  (enforced by ws_max_size + handler check)</text>
+  <text x="10" y="146" font-size="8.5" fill="#888">Streamed frames (done=false): delta only · Not persisted</text>
+</g>
+
+<!-- ── ResolveResponse ── -->
+<g class="hoverable" data-tip="schema-response" transform="translate(720,88)">
+  <rect width="270" height="155" rx="8" fill="#fff" stroke="#E65100" stroke-width="1.5"/>
+  <rect width="270" height="26" rx="8" fill="#BF360C"/>
+  <rect y="18" width="270" height="8" fill="#BF360C"/>
+  <text x="135" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">ResolveResponse</text>
+  <text x="10" y="43" font-size="9.5" fill="#555">ok:              bool</text>
+  <text x="10" y="57" font-size="9.5" fill="#E65100" font-weight="600">resolved:        List[ResolvedPackage]</text>
+  <text x="10" y="71" font-size="9.5" fill="#E65100" font-weight="600">conflicts:       List[Conflict]</text>
+  <text x="10" y="85" font-size="9.5" fill="#555">lockfile:        str</text>
+  <text x="10" y="99" font-size="9.5" fill="#555">report_markdown: str</text>
+  <text x="10" y="113" font-size="9.5" fill="#555">trace_id:        str</text>
+  <line x1="0" y1="120" x2="270" y2="120" stroke="#FBE9E7" stroke-width="1"/>
+  <text x="10" y="133" font-size="8.5" fill="#888">Returned by /resolve (headless)</text>
+  <text x="10" y="146" font-size="8.5" fill="#888">Stored in approval_gateway._FINAL until APPROVE</text>
+</g>
+
+<!-- ── ResolvedPackage ── -->
+<g class="hoverable" data-tip="schema-pkg" transform="translate(1010,88)">
+  <rect width="240" height="155" rx="8" fill="#fff" stroke="#E65100" stroke-width="1.5"/>
+  <rect width="240" height="26" rx="8" fill="#BF360C"/>
+  <rect y="18" width="240" height="8" fill="#BF360C"/>
+  <text x="120" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">ResolvedPackage</text>
+  <text x="10" y="43" font-size="9.5" fill="#555">name:            str</text>
+  <text x="10" y="57" font-size="9.5" fill="#555">version:         str  (resolved)</text>
+  <text x="10" y="71" font-size="9.5" fill="#555">direct:          bool</text>
+  <text x="10" y="85" font-size="9.5" fill="#555">parents:         List[str]</text>
+  <text x="10" y="99" font-size="9.5" fill="#555">license:         Optional[str]</text>
+  <text x="10" y="113" font-size="9.5" fill="#E65100" font-weight="600">vulnerabilities: List[str]  (CVE/GHSA IDs)</text>
+  <text x="10" y="127" font-size="9.5" fill="#555">deprecated:      Optional[bool]</text>
+  <line x1="0" y1="134" x2="240" y2="134" stroke="#FBE9E7" stroke-width="1"/>
+  <text x="10" y="147" font-size="8.5" fill="#888">Annotated by OSVClient.annotate_packages()</text>
+</g>
+
+<!-- ResolveResponse → ResolvedPackage -->
+<line x1="990" y1="143" x2="1010" y2="143" stroke="#E65100" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#p5-arr)"/>
+<text x="1000" y="138" text-anchor="middle" font-size="8" fill="#E65100">1→*</text>
+
+<!-- ── Conflict ── -->
+<g class="hoverable" data-tip="schema-conflict" transform="translate(1010,260)">
+  <rect width="240" height="145" rx="8" fill="#fff" stroke="#E65100" stroke-width="1.5"/>
+  <rect width="240" height="26" rx="8" fill="#BF360C"/>
+  <rect y="18" width="240" height="8" fill="#BF360C"/>
+  <text x="120" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">Conflict</text>
+  <text x="10" y="43" font-size="9.5" fill="#555">package:      str  (conflicting pkg)</text>
+  <text x="10" y="57" font-size="9.5" fill="#E65100" font-weight="600">requested_by: Dict[str, str]  {requester→constraint}</text>
+  <text x="10" y="71" font-size="9.5" fill="#555">resolution:   Optional[str]  (chosen version)</text>
+  <text x="10" y="85" font-size="9.5" fill="#555">explanation:  Optional[str]  (LLM text)</text>
+  <line x1="0" y1="92" x2="240" y2="92" stroke="#FBE9E7" stroke-width="1"/>
+  <text x="10" y="105" font-size="8.5" fill="#888">Example: requested_by = {</text>
+  <text x="10" y="119" font-size="8.5" fill="#888">  "flask": "&gt;=2.0",  "myapp": "&lt;2.1"</text>
+  <text x="10" y="133" font-size="8.5" fill="#888">}</text>
+</g>
+
+<!-- ResolveResponse → Conflict -->
+<line x1="990" y1="290" x2="1010" y2="290" stroke="#E65100" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#p5-arr)"/>
+<text x="1000" y="285" text-anchor="middle" font-size="8" fill="#E65100">1→*</text>
+
+<!-- ── DependencyNode ── -->
+<g class="hoverable" data-tip="schema-node" transform="translate(720,260)">
+  <rect width="270" height="155" rx="8" fill="#fff" stroke="#388E3C" stroke-width="1.5"/>
+  <rect width="270" height="26" rx="8" fill="#2E7D32"/>
+  <rect y="18" width="270" height="8" fill="#2E7D32"/>
+  <text x="135" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">DependencyNode  (in-memory DAG)</text>
+  <text x="10" y="43" font-size="9.5" fill="#555">name:       str</text>
+  <text x="10" y="57" font-size="9.5" fill="#555">constraint: str  (version spec from parent)</text>
+  <text x="10" y="71" font-size="9.5" fill="#555">version:    Optional[str]  (resolved)</text>
+  <text x="10" y="85" font-size="9.5" fill="#388E3C" font-weight="600">parents:    List[str]  (package names)</text>
+  <text x="10" y="99" font-size="9.5" fill="#388E3C" font-weight="600">children:   List[str]  (package names)</text>
+  <text x="10" y="113" font-size="9.5" fill="#555">direct:     bool  (user-specified dep)</text>
+  <text x="10" y="127" font-size="9.5" fill="#555">license:    Optional[str]</text>
+  <text x="10" y="141" font-size="9.5" fill="#555">error:      Optional[str]  (expand failure)</text>
+  <line x1="0" y1="148" x2="270" y2="148" stroke="#E8F5E9" stroke-width="1"/>
+  <text x="10" y="154" font-size="8.5" fill="#888">Uses __slots__ for memory efficiency</text>
+</g>
+
+<!-- ── FRONTEND SECTION ── -->
+<rect x="20" y="490" width="1340" height="18" rx="4" fill="#BBDEFB"/>
+<text x="690" y="503" text-anchor="middle" font-size="11" font-weight="700" fill="#0D47A1">Frontend  —  TypeScript Interfaces  (src/types/dependencyResolver.ts)</text>
+
+<!-- ── HITLSessionState (Redux) ── -->
+<g class="hoverable" data-tip="ts-state" transform="translate(20,516)">
+  <rect width="310" height="200" rx="8" fill="#fff" stroke="#1976D2" stroke-width="1.5"/>
+  <rect width="310" height="26" rx="8" fill="#0D47A1"/>
+  <rect y="18" width="310" height="8" fill="#0D47A1"/>
+  <text x="155" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">HITLSessionState  (Redux slice)</text>
+  <text x="10" y="43" font-size="9.5" fill="#555">sessionId:       string | null</text>
+  <text x="10" y="57" font-size="9.5" fill="#555">wsUrl:           string | null</text>
+  <text x="10" y="71" font-size="9.5" fill="#1976D2" font-weight="600">status:          SessionStatus</text>
+  <text x="10" y="85" font-size="9.5" fill="#555">ecosystem:       Ecosystem</text>
+  <text x="10" y="99" font-size="9.5" fill="#555">strategy:        Strategy</text>
+  <text x="10" y="113" font-size="9.5" fill="#1976D2" font-weight="600">entries:         ChatEntry[]</text>
+  <text x="10" y="127" font-size="9.5" fill="#1976D2" font-weight="600">pendingApproval: ApprovalRequestPayload | null</text>
+  <text x="10" y="141" font-size="9.5" fill="#555">isConnected:     boolean</text>
+  <text x="10" y="155" font-size="9.5" fill="#555">isStreaming:     boolean</text>
+  <text x="10" y="169" font-size="9.5" fill="#555">finalLockfile:   string | null</text>
+  <text x="10" y="183" font-size="9.5" fill="#555">finalReport:     string | null</text>
+  <text x="10" y="197" font-size="9.5" fill="#555">error:           string | null</text>
+</g>
+
+<!-- ── ChatEntry ── -->
+<g class="hoverable" data-tip="ts-chatentry" transform="translate(350,516)">
+  <rect width="280" height="200" rx="8" fill="#fff" stroke="#1976D2" stroke-width="1.5"/>
+  <rect width="280" height="26" rx="8" fill="#0D47A1"/>
+  <rect y="18" width="280" height="8" fill="#0D47A1"/>
+  <text x="140" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">ChatEntry  (UI message)</text>
+  <text x="10" y="43" font-size="9.5" fill="#555">id:            string  (UUID)</text>
+  <text x="10" y="57" font-size="9.5" fill="#1976D2" font-weight="600">type:          MessageType</text>
+  <text x="10" y="71" font-size="9.5" fill="#555">timestamp:     string</text>
+  <text x="10" y="85" font-size="9.5" fill="#555">text?:         string</text>
+  <text x="10" y="99" font-size="9.5" fill="#555">delta?:        string  (streaming token)</text>
+  <text x="10" y="113" font-size="9.5" fill="#555">done?:         boolean</text>
+  <text x="10" y="127" font-size="9.5" fill="#555">stage?:        string  (solver_event)</text>
+  <text x="10" y="141" font-size="9.5" fill="#1976D2" font-weight="600">searchResults?: SearchResult[]</text>
+  <text x="10" y="155" font-size="9.5" fill="#1976D2" font-weight="600">approval?:     ApprovalRequestPayload</text>
+  <line x1="0" y1="162" x2="280" y2="162" stroke="#BBDEFB" stroke-width="1"/>
+  <text x="10" y="175" font-size="8.5" fill="#888">MessageType: user_message · agent_message</text>
+  <text x="10" y="189" font-size="8.5" fill="#888">solver_event · search_event · approval_request · system · error</text>
+</g>
+
+<!-- ── WSFrame ── -->
+<g class="hoverable" data-tip="ts-wsframe" transform="translate(650,516)">
+  <rect width="250" height="145" rx="8" fill="#fff" stroke="#7B1FA2" stroke-width="1.5"/>
+  <rect width="250" height="26" rx="8" fill="#6A1B9A"/>
+  <rect y="18" width="250" height="8" fill="#6A1B9A"/>
+  <text x="125" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">WSFrame  (wire format)</text>
+  <text x="10" y="43" font-size="9.5" fill="#7B1FA2" font-weight="600">type:       MessageType</text>
+  <text x="10" y="57" font-size="9.5" fill="#555">session_id: string</text>
+  <text x="10" y="71" font-size="9.5" fill="#555">message_id: string</text>
+  <text x="10" y="85" font-size="9.5" fill="#555">timestamp:  string  (ISO 8601)</text>
+  <text x="10" y="99" font-size="9.5" fill="#7B1FA2" font-weight="600">payload:    Record&lt;string, any&gt;</text>
+  <text x="10" y="113" font-size="9.5" fill="#555">done:       boolean</text>
+  <line x1="0" y1="120" x2="250" y2="120" stroke="#EDE7F6" stroke-width="1"/>
+  <text x="10" y="133" font-size="8.5" fill="#888">Parsed in ws.onmessage → dispatch(frameReceived)</text>
+</g>
+
+<!-- ── ApprovalRequestPayload ── -->
+<g class="hoverable" data-tip="ts-approval" transform="translate(920,516)">
+  <rect width="280" height="175" rx="8" fill="#fff" stroke="#1565C0" stroke-width="1.5"/>
+  <rect width="280" height="26" rx="8" fill="#1565C0"/>
+  <rect y="18" width="280" height="8" fill="#1565C0"/>
+  <text x="140" y="18" text-anchor="middle" fill="white" font-size="11" font-weight="700">ApprovalRequestPayload</text>
+  <text x="10" y="43" font-size="9.5" fill="#555">approval_id:       string</text>
+  <text x="10" y="57" font-size="9.5" fill="#555">session_id:        string</text>
+  <text x="10" y="71" font-size="9.5" fill="#555">proposed_lockfile: string</text>
+  <text x="10" y="85" font-size="9.5" fill="#555">report_markdown:   string</text>
+  <text x="10" y="99" font-size="9.5" fill="#1565C0" font-weight="600">conflicts:         Conflict[]</text>
+  <text x="10" y="113" font-size="9.5" fill="#1565C0" font-weight="600">search_citations:  SearchResult[]</text>
+  <text x="10" y="127" font-size="9.5" fill="#555">stats: {</text>
+  <text x="24" y="141" font-size="9.5" fill="#555">resolved: number · conflicts: number</text>
+  <text x="24" y="155" font-size="9.5" fill="#555">cves: number · license_issues: number</text>
+  <text x="10" y="169" font-size="9.5" fill="#555">}</text>
+</g>
+
+<!-- ── Enums box ── -->
+<g transform="translate(1220,516)">
+  <rect width="140" height="175" rx="8" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="1.2"/>
+  <rect width="140" height="24" rx="8" fill="#6A1B9A"/>
+  <rect y="16" width="140" height="8" fill="#6A1B9A"/>
+  <text x="70" y="17" text-anchor="middle" fill="white" font-size="10" font-weight="600">Shared Enums</text>
+  <text x="8" y="38" font-size="9.5" fill="#555" font-weight="600">Ecosystem</text>
+  <text x="8" y="51" font-size="8.5" fill="#888">pypi · npm · maven · cargo</text>
+  <text x="8" y="66" font-size="9.5" fill="#555" font-weight="600">Strategy</text>
+  <text x="8" y="79" font-size="8.5" fill="#888">stable · latest · minimal</text>
+  <text x="8" y="94" font-size="9.5" fill="#555" font-weight="600">SessionStatus</text>
+  <text x="8" y="107" font-size="8.5" fill="#888">created · active</text>
+  <text x="8" y="120" font-size="8.5" fill="#888">pending_approval</text>
+  <text x="8" y="133" font-size="8.5" fill="#888">approved · rejected · closed</text>
+  <text x="8" y="148" font-size="9.5" fill="#555" font-weight="600">MessageType  (11)</text>
+  <text x="8" y="161" font-size="8.5" fill="#888">user_message · agent_message</text>
+  <text x="8" y="174" font-size="8.5" fill="#888">solver_event · approval_* …</text>
+</g>
+
+<!-- Relationship arrows (frontend) -->
+<line x1="330" y1="588" x2="350" y2="588" stroke="#1976D2" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#p5-arr)"/>
+<text x="340" y="583" text-anchor="middle" font-size="7.5" fill="#1976D2">entries[]</text>
+
+<line x1="630" y1="616" x2="650" y2="616" stroke="#7B1FA2" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#p5-arr)"/>
+<text x="640" y="611" text-anchor="middle" font-size="7.5" fill="#7B1FA2">WSFrame</text>
+
+<line x1="900" y1="574" x2="920" y2="574" stroke="#1565C0" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#p5-arr)"/>
+<text x="910" y="569" text-anchor="middle" font-size="7.5" fill="#1565C0">approval</text>
+
+</svg>
+</div>
+
+</main>
+<div id="tooltip"><h4 id="tt-title"></h4><p id="tt-body"></p><span id="tt-code" class="mono"></span></div>
+
+<script>
+const TIPS = {
+  parse:       {t:"Stage 1 · Parse Manifest",         b:"Dispatches to ecosystem parser. Returns List[Tuple[name, constraint]]. Raises ValueError on malformed input.",  c:"parsers/requirements_txt.py · parsers/package_json.py"},
+  dag:         {t:"Stage 2 · Build Dependency Graph",  b:"Recursive BFS expands transitive deps up to max_depth=4. Each node fetched via registry client (concurrent, no Semaphore). Caches visited nodes to prevent infinite loops.", c:"resolver/graph.py · DependencyGraph.build()"},
+  solve:       {t:"Stage 3 · PubGrub Solver",          b:"Collects all constraints per package across the DAG, then selects one version satisfying all. Strategy: stable=latest non-prerelease, latest=abs latest, minimal=oldest.", c:"resolver/solver.py · PubGrubSolver.solve()"},
+  cve:         {t:"Stage 4 · CVE Audit",               b:"Concurrent HTTP POST to api.osv.dev/v1/query — up to 10 at once (Semaphore). Each package gets vulnerabilities[] field added. No API key required.", c:"security/osv_client.py · OSVClient.annotate_packages()"},
+  license:     {t:"Stage 5 · License Check",           b:"Synchronous check. Validates license compatibility matrix across all resolved packages. Results bundled into report_markdown.", c:"security/license_check.py · LicenseChecker.check()"},
+  llm:         {t:"Stage 6 · LLM Explain (Streaming)", b:"Azure OpenAI streaming explanation of conflicts. Uses async generator — each token emitted as agent_message{delta, done:false}. Falls back to deterministic explanation if Azure unavailable.", c:"llm/explainer.py · DependencyExplainer.stream_explanation()"},
+  output:      {t:"Stage 7 · Build Output",            b:"build_lockfile() formats per ecosystem: pypi=name==ver, npm=package.json format, cargo=Cargo.lock style. build_report() generates full markdown with stats, CVEs, and lockfile block.", c:"llm/explainer.py · build_lockfile() · build_report()"},
+  guardrails:  {t:"Stage 8 · Output Guardrails",       b:"L1: checks for hallucinated versions (versions not in resolved[]) · L2: CVE citations must match CVE-/GHSA- pattern · L3: softens overconfident language. Raises GuardrailViolation.", c:"hitl/guardrails.py · GuardrailLayer.check_output()"},
+  approval:    {t:"Stage 9 · Approval Gate",           b:"Stores ResolveResponse in _FINAL dict (not released yet). Registers ApprovalRequest in _PENDING. Emits approval_request WS frame. Session transitions to PENDING_APPROVAL.", c:"hitl/approval_gateway.py · store_result() · register()"},
+  "s-created": {t:"State: CREATED",                   b:"Session object created, UUID assigned, JSON written to disk. No WS connection yet. Pipeline has not started.", c:"hitl/session.py · create_session()"},
+  "s-active":  {t:"State: ACTIVE",                    b:"WS connected. Can run pipeline, answer questions, run searches. asyncio.Lock prevents concurrent pipeline runs within same session.", c:"hitl/orchestrator.py · connect()"},
+  "s-pending": {t:"State: PENDING_APPROVAL",          b:"Pipeline completed. Lockfile stored but NOT released. Awaiting APPROVE or REJECT from user. No new pipeline runs allowed.", c:"hitl/approval_gateway.py · register()"},
+  "s-approved":{t:"State: APPROVED",                  b:"User clicked Approve. _FINAL[sid] popped and returned. Lockfile downloadable. User can start a new pipeline run.", c:"hitl/approval_gateway.py · decide()"},
+  "s-rejected":{t:"State: REJECTED",                  b:"User clicked Reject. _FINAL[sid] discarded. Lockfile withheld. pending_approval cleared. User can re-run or ask questions.", c:"hitl/approval_gateway.py · decide()"},
+  "s-closed":  {t:"State: CLOSED",                    b:"Session terminated via DELETE /session/{id} or WS drop. No further operations possible. Session data remains on disk for audit.", c:"hitl/__init__.py · DELETE /session/{id}"},
+  "api-client":{t:"apiClient (Axios)",                b:"Singleton Axios instance. Injects Authorization header from localStorage token. Redirects to /login on 401. Used by createSession, getSession, deleteSession.", c:"services/api.ts · ApiClient"},
+  "dr-service":{t:"dependencyResolverService",        b:"Main service module. Manages WebSocket lifecycle including reconnect (exponential backoff). sendApproval() falls back to REST POST if WS is closed.", c:"services/dependencyResolverService.ts"},
+  "ws-instance":{t:"WebSocket Instance",              b:"Native browser WebSocket. onmessage parses JSON and dispatches frameReceived(). onclose triggers reconnect unless _intentionalClose=true.", c:"services/dependencyResolverService.ts · connectWS()"},
+  "redux-state":{t:"HITLSessionState (Redux)",        b:"Central state for the resolver UI. entries[] holds the full conversation. pendingApproval drives the InlineApproval component visibility.", c:"store/slices/dependencyResolverSlice.ts"},
+  "redux-actions":{t:"Redux Action Creators",         b:"frameReceived() is the core reducer — routes to type-specific handlers for each MessageType. agent_message supports streaming by appending deltas to last entry.", c:"store/slices/dependencyResolverSlice.ts · frameReceived"},
+  page:        {t:"DependencyResolverPage",           b:"Client component. Manages local state (input, strategy, storedSessions). detectEcosystem() uses regex to auto-detect from pasted text. handleDownload() creates blob with ecosystem-specific filename.", c:"app/dependency-resolver/page.tsx"},
+  "schema-session":{t:"HITLSession (Pydantic)",       b:"Core session model. messages[] is the persistent conversation log. resolution_stats snapshot is written after each pipeline run.", c:"schemas.py · HITLSession"},
+  "schema-chatmsg":{t:"ChatMessage",                  b:"One message in the conversation log. payload is untyped Dict to support all frame types. Only done=true frames are persisted to session.messages.", c:"schemas.py · ChatMessage"},
+  "schema-approval":{t:"ApprovalRequest",             b:"Sent to client as the approval_request WS frame. Stored in approval_gateway._PENDING until user decides. Contains full lockfile for preview.", c:"schemas.py · ApprovalRequest"},
+  "schema-wsmsg":{t:"WSMessage",                      b:"Wire format for all WebSocket frames. Payload varies by MessageType. Max 64KB enforced at multiple levels.", c:"schemas.py · WSMessage"},
+  "schema-response":{t:"ResolveResponse",             b:"The output of the resolution pipeline. Stored in approval_gateway._FINAL until APPROVE. Also returned directly by headless /resolve endpoint.", c:"schemas.py · ResolveResponse"},
+  "schema-pkg":{t:"ResolvedPackage",                  b:"One resolved package in the dependency tree. vulnerabilities[] populated by OSVClient. parents[] enables tracing the dependency chain.", c:"schemas.py · ResolvedPackage"},
+  "schema-conflict":{t:"Conflict",                    b:"Represents a version conflict. requested_by maps each dependent to its constraint. resolution is the chosen version (may not satisfy all).", c:"schemas.py · Conflict"},
+  "schema-node":{t:"DependencyNode (DAG)",            b:"In-memory node in the dependency graph. Uses __slots__ for efficiency. parents/children store package names (not refs) to avoid circular references.", c:"resolver/graph.py · DependencyNode"},
+  "ts-state":  {t:"HITLSessionState (TypeScript)",    b:"Redux slice state. Mirrors the backend session shape. entries[] drives the chat UI. finalLockfile triggers the download button appearance.", c:"types/dependencyResolver.ts"},
+  "ts-chatentry":{t:"ChatEntry",                      b:"Union-like type with optional fields per message type. approval? field carries the full approval payload for the InlineApproval component.", c:"types/dependencyResolver.ts · ChatEntry"},
+  "ts-wsframe":{t:"WSFrame (TypeScript)",              b:"Parsed directly from ws.onmessage event data. Dispatched via frameReceived() to the Redux slice reducer.", c:"types/dependencyResolver.ts · WSFrame"},
+  "ts-approval":{t:"ApprovalRequestPayload",          b:"Embedded in ChatEntry.approval. Drives the InlineApproval component UI — shows lockfile stats, conflict list, and APPROVE/REJECT buttons.", c:"types/dependencyResolver.ts · ApprovalRequestPayload"}
+};
+
+const tooltip = document.getElementById('tooltip');
+const ttTitle = document.getElementById('tt-title');
+const ttBody = document.getElementById('tt-body');
+const ttCode = document.getElementById('tt-code');
+
+document.querySelectorAll('[data-tip]').forEach(el => {
+  el.addEventListener('mouseenter', e => {
+    const d = TIPS[el.dataset.tip];
+    if (!d) return;
+    ttTitle.textContent = d.t;
+    ttBody.textContent = d.b;
+    ttCode.textContent = d.c || '';
+    ttCode.style.display = d.c ? 'block' : 'none';
+    tooltip.classList.add('vis');
+  });
+  el.addEventListener('mousemove', e => {
+    const x = e.clientX + 14, y = e.clientY + 14;
+    const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+    tooltip.style.left = (x + tw > window.innerWidth  ? e.clientX - tw - 8 : x) + 'px';
+    tooltip.style.top  = (y + th > window.innerHeight ? e.clientY - th - 8 : y) + 'px';
+  });
+  el.addEventListener('mouseleave', () => tooltip.classList.remove('vis'));
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const n = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('p' + n).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

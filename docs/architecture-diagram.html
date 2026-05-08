@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dependency Resolver Agent — Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #FAFAFA;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    letter-spacing: -0.02em;
+  }
+  header p {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 4px;
+  }
+  main {
+    width: 100%;
+    max-width: 1300px;
+    position: relative;
+  }
+  svg { display: block; width: 100%; height: auto; }
+  .comp-title { font-weight: 600; font-size: 13px; }
+  .comp-detail { font-size: 10px; fill: #555; }
+  .tier-label { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+  .sub-label { font-size: 10.5px; font-weight: 500; }
+  .step-num { font-size: 11px; font-weight: 700; fill: #fff; }
+  .container-title { font-size: 14px; font-weight: 700; }
+
+  .component rect, .component path {
+    transition: filter 0.2s ease, opacity 0.2s ease;
+    cursor: pointer;
+  }
+  .component:hover rect, .component:hover path {
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.18));
+  }
+
+  #tooltip {
+    position: fixed;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    padding: 14px 16px;
+    max-width: 340px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+    z-index: 100;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  #tooltip.visible { opacity: 1; }
+  #tooltip h3 {
+    font-size: 13.5px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #1a1a2e;
+  }
+  #tooltip .tip-desc { color: #444; margin-bottom: 6px; }
+  #tooltip .tip-file {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: #00796B;
+    background: #E0F2F1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 2px;
+  }
+
+  .legend-box rect { rx: 6; }
+  .legend-title { font-size: 12px; font-weight: 700; fill: #333; }
+  .legend-text { font-size: 10.5px; fill: #555; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Dependency Resolver Agent</h1>
+  <p>High-Level Architecture — Conversational HITL Dependency Resolver</p>
+</header>
+<main>
+<svg viewBox="0 0 1200 1100" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#1976D2"/>
+  </marker>
+  <marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#7B1FA2"/>
+  </marker>
+  <marker id="arrow-teal" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#00796B"/>
+  </marker>
+  <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+    <polygon points="0 0, 10 3.5, 0 7" fill="#F57C00"/>
+  </marker>
+  <filter id="shadow-sm">
+    <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/>
+  </filter>
+</defs>
+
+<!-- ═══════════ TIER 0: USER ═══════════ -->
+<g class="component" data-component="user" transform="translate(500, 20)">
+  <rect x="0" y="0" width="200" height="55" rx="10" fill="#E8F4FD" stroke="#2196F3" stroke-width="1.8"/>
+  <text x="100" y="23" text-anchor="middle" class="comp-title" fill="#1565C0">User</text>
+  <text x="100" y="40" text-anchor="middle" class="comp-detail">(Browser)</text>
+</g>
+
+<!-- Connection: User → Frontend -->
+<line x1="600" y1="75" x2="600" y2="108" stroke="#2196F3" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+
+<!-- ═══════════ TIER 1: FRONTEND ═══════════ -->
+<g>
+  <rect x="220" y="110" width="760" height="95" rx="12" fill="#BBDEFB" stroke="#1976D2" stroke-width="1.8" fill-opacity="0.35" filter="url(#shadow-sm)"/>
+  <text x="600" y="132" text-anchor="middle" class="container-title" fill="#0D47A1">Frontend — Next.js :3000</text>
+
+  <g class="component" data-component="redux" transform="translate(260, 142)">
+    <rect width="200" height="50" rx="8" fill="#BBDEFB" stroke="#1976D2" stroke-width="1.2"/>
+    <text x="100" y="22" text-anchor="middle" class="comp-title" fill="#0D47A1">Redux Store</text>
+    <text x="100" y="38" text-anchor="middle" class="comp-detail">Session + connection state</text>
+  </g>
+  <g class="component" data-component="ws-client" transform="translate(500, 142)">
+    <rect width="200" height="50" rx="8" fill="#BBDEFB" stroke="#1976D2" stroke-width="1.2"/>
+    <text x="100" y="22" text-anchor="middle" class="comp-title" fill="#0D47A1">WebSocket Client</text>
+    <text x="100" y="38" text-anchor="middle" class="comp-detail">Auto-reconnect + backoff</text>
+  </g>
+  <g class="component" data-component="axios" transform="translate(740, 142)">
+    <rect width="200" height="50" rx="8" fill="#BBDEFB" stroke="#1976D2" stroke-width="1.2"/>
+    <text x="100" y="22" text-anchor="middle" class="comp-title" fill="#0D47A1">Axios HTTP</text>
+    <text x="100" y="38" text-anchor="middle" class="comp-detail">REST API calls</text>
+  </g>
+</g>
+
+<!-- ═══════════ CONNECTIONS: FRONTEND → BACKEND ═══════════ -->
+<!-- REST: Axios → Router -->
+<line x1="840" y1="192" x2="840" y2="265" stroke="#1976D2" stroke-width="2" marker-end="url(#arrow-blue)"/>
+<rect x="850" y="218" width="120" height="18" rx="4" fill="#fff" stroke="#1976D2" stroke-width="0.8"/>
+<text x="910" y="231" text-anchor="middle" font-size="9" fill="#1976D2" font-weight="600">REST (HTTP)</text>
+
+<!-- WebSocket: WS Client → Orchestrator -->
+<line x1="600" y1="192" x2="600" y2="265" stroke="#7B1FA2" stroke-width="2" stroke-dasharray="8,4" marker-end="url(#arrow-purple)"/>
+<rect x="610" y="218" width="155" height="18" rx="4" fill="#fff" stroke="#7B1FA2" stroke-width="0.8"/>
+<text x="688" y="231" text-anchor="middle" font-size="9" fill="#7B1FA2" font-weight="600">WS /chat/{session_id}</text>
+
+<!-- ═══════════ TIER 2: BACKEND ═══════════ -->
+<g>
+  <rect x="80" y="270" width="1040" height="555" rx="14" fill="#E0F2F1" stroke="#00897B" stroke-width="2" fill-opacity="0.35" filter="url(#shadow-sm)"/>
+  <text x="600" y="296" text-anchor="middle" class="container-title" fill="#004D40">Backend — FastAPI :8000</text>
+
+  <!-- ── Row A: Entry Layer ── -->
+  <text x="120" y="326" class="tier-label" fill="#00695C">Entry</text>
+
+  <g class="component" data-component="router" transform="translate(170, 310)">
+    <rect width="240" height="55" rx="8" fill="#B2DFDB" stroke="#00796B" stroke-width="1.3"/>
+    <text x="120" y="23" text-anchor="middle" class="comp-title" fill="#004D40">FastAPI Router</text>
+    <text x="120" y="40" text-anchor="middle" class="comp-detail">REST + WebSocket endpoints</text>
+  </g>
+
+  <g class="component" data-component="guardrails" transform="translate(460, 310)">
+    <rect width="200" height="55" rx="8" fill="#B2DFDB" stroke="#00796B" stroke-width="1.3"/>
+    <text x="100" y="23" text-anchor="middle" class="comp-title" fill="#004D40">Guardrails</text>
+    <text x="100" y="40" text-anchor="middle" class="comp-detail">Input / output validation</text>
+  </g>
+
+  <g class="component" data-component="orchestrator" transform="translate(720, 310)">
+    <rect width="280" height="55" rx="8" fill="#80CBC4" stroke="#00695C" stroke-width="1.8"/>
+    <text x="140" y="23" text-anchor="middle" class="comp-title" fill="#004D40">HITL Orchestrator</text>
+    <text x="140" y="40" text-anchor="middle" class="comp-detail">Pipeline coordination + intent routing</text>
+  </g>
+
+  <!-- Internal arrows: Router → Guardrails → Orchestrator -->
+  <line x1="410" y1="338" x2="455" y2="338" stroke="#00796B" stroke-width="1.5" marker-end="url(#arrow-teal)"/>
+  <line x1="660" y1="338" x2="715" y2="338" stroke="#00796B" stroke-width="1.5" marker-end="url(#arrow-teal)"/>
+
+  <!-- ── Row B: Pipeline ── -->
+  <text x="120" y="406" class="tier-label" fill="#00695C">Pipeline</text>
+
+  <g class="component" data-component="parsers" transform="translate(135, 415)">
+    <rect width="195" height="65" rx="8" fill="#B2DFDB" stroke="#00796B" stroke-width="1.3"/>
+    <text x="98" y="22" text-anchor="middle" class="comp-title" fill="#004D40">Parsers</text>
+    <text x="98" y="38" text-anchor="middle" class="comp-detail">package.json · requirements.txt</text>
+    <text x="98" y="52" text-anchor="middle" class="comp-detail">Cargo.toml · pom.xml</text>
+  </g>
+
+  <g class="component" data-component="graph" transform="translate(380, 415)">
+    <rect width="195" height="65" rx="8" fill="#B2DFDB" stroke="#00796B" stroke-width="1.3"/>
+    <text x="98" y="22" text-anchor="middle" class="comp-title" fill="#004D40">DependencyGraph</text>
+    <text x="98" y="38" text-anchor="middle" class="comp-detail">DAG builder + transitive</text>
+    <text x="98" y="52" text-anchor="middle" class="comp-detail">dependency expansion</text>
+  </g>
+
+  <g class="component" data-component="solver" transform="translate(625, 415)">
+    <rect width="195" height="65" rx="8" fill="#B2DFDB" stroke="#00796B" stroke-width="1.3"/>
+    <text x="98" y="22" text-anchor="middle" class="comp-title" fill="#004D40">PubGrub Solver</text>
+    <text x="98" y="38" text-anchor="middle" class="comp-detail">Version resolution engine</text>
+    <text x="98" y="52" text-anchor="middle" class="comp-detail">stable · latest · minimal</text>
+  </g>
+
+  <g class="component" data-component="security" transform="translate(870, 415)">
+    <rect width="195" height="65" rx="8" fill="#B2DFDB" stroke="#00796B" stroke-width="1.3"/>
+    <text x="98" y="22" text-anchor="middle" class="comp-title" fill="#004D40">Security Layer</text>
+    <text x="98" y="38" text-anchor="middle" class="comp-detail">OSV CVE audit</text>
+    <text x="98" y="52" text-anchor="middle" class="comp-detail">+ license checker</text>
+  </g>
+
+  <!-- Pipeline arrows with step numbers -->
+  <!-- Orchestrator → Parsers -->
+  <path d="M 860 365 L 860 395 L 232 395 L 232 410" stroke="#00796B" stroke-width="1.5" fill="none" marker-end="url(#arrow-teal)"/>
+  <circle cx="860" cy="385" r="10" fill="#00897B"/>
+  <text x="860" y="389" text-anchor="middle" class="step-num">1</text>
+
+  <!-- Parsers → Graph -->
+  <line x1="330" y1="448" x2="375" y2="448" stroke="#00796B" stroke-width="1.5" marker-end="url(#arrow-teal)"/>
+  <circle cx="353" cy="448" r="10" fill="#00897B"/>
+  <text x="353" y="452" text-anchor="middle" class="step-num">2</text>
+
+  <!-- Graph → Solver -->
+  <line x1="575" y1="448" x2="620" y2="448" stroke="#00796B" stroke-width="1.5" marker-end="url(#arrow-teal)"/>
+  <circle cx="598" cy="448" r="10" fill="#00897B"/>
+  <text x="598" y="452" text-anchor="middle" class="step-num">3</text>
+
+  <!-- Solver → Security -->
+  <line x1="820" y1="448" x2="865" y2="448" stroke="#00796B" stroke-width="1.5" marker-end="url(#arrow-teal)"/>
+  <circle cx="843" cy="448" r="10" fill="#00897B"/>
+  <text x="843" y="452" text-anchor="middle" class="step-num">4</text>
+
+  <!-- ── Row C: Post-processing ── -->
+  <text x="120" y="516" class="tier-label" fill="#00695C">Post-process</text>
+
+  <g class="component" data-component="explainer" transform="translate(250, 525)">
+    <rect width="250" height="60" rx="8" fill="#B2DFDB" stroke="#00796B" stroke-width="1.3"/>
+    <text x="125" y="22" text-anchor="middle" class="comp-title" fill="#004D40">LLM Explainer</text>
+    <text x="125" y="40" text-anchor="middle" class="comp-detail">Streaming conflict explanations</text>
+    <text x="125" y="54" text-anchor="middle" class="comp-detail">Azure OpenAI / lockfile / report</text>
+  </g>
+
+  <g class="component" data-component="approval" transform="translate(600, 525)">
+    <rect width="250" height="60" rx="8" fill="#B2DFDB" stroke="#00796B" stroke-width="1.3"/>
+    <text x="125" y="22" text-anchor="middle" class="comp-title" fill="#004D40">Approval Gateway</text>
+    <text x="125" y="40" text-anchor="middle" class="comp-detail">APPROVE / REJECT decision gate</text>
+    <text x="125" y="54" text-anchor="middle" class="comp-detail">Prevents auto-apply of lockfiles</text>
+  </g>
+
+  <!-- Security → Explainer -->
+  <path d="M 967 480 L 967 505 L 375 505 L 375 520" stroke="#00796B" stroke-width="1.5" fill="none" marker-end="url(#arrow-teal)"/>
+  <circle cx="967" cy="500" r="10" fill="#00897B"/>
+  <text x="967" y="504" text-anchor="middle" class="step-num">5</text>
+
+  <!-- Explainer → Approval -->
+  <line x1="500" y1="555" x2="595" y2="555" stroke="#00796B" stroke-width="1.5" marker-end="url(#arrow-teal)"/>
+  <circle cx="548" cy="555" r="10" fill="#00897B"/>
+  <text x="548" y="559" text-anchor="middle" class="step-num">6</text>
+
+  <!-- ── Row D: Persistence ── -->
+  <text x="120" y="625" class="tier-label" fill="#00695C">Storage</text>
+
+  <g class="component" data-component="session-store" transform="translate(380, 630)">
+    <rect width="280" height="55" rx="8" fill="#B2DFDB" stroke="#00796B" stroke-width="1.3"/>
+    <text x="140" y="22" text-anchor="middle" class="comp-title" fill="#004D40">Session Store</text>
+    <text x="140" y="40" text-anchor="middle" class="comp-detail">state/hitl/{session_id}.json</text>
+  </g>
+
+  <!-- Approval → Session Store -->
+  <path d="M 725 585 L 725 610 L 520 610 L 520 625" stroke="#00796B" stroke-width="1.5" fill="none" marker-end="url(#arrow-teal)"/>
+  <circle cx="725" cy="600" r="10" fill="#00897B"/>
+  <text x="725" y="604" text-anchor="middle" class="step-num">7</text>
+
+  <!-- Approval → (back to user as approval_request frame) — label -->
+  <path d="M 850 555 L 1040 555 L 1040 296" stroke="#7B1FA2" stroke-width="1.5" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-purple)"/>
+  <rect x="1045" y="410" width="40" height="18" rx="4" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="0.6"/>
+  <text x="1065" y="423" text-anchor="middle" font-size="8" fill="#7B1FA2" font-weight="600">WS</text>
+
+</g>
+
+<!-- ═══════════ TIER 3: EXTERNAL SERVICES ═══════════ -->
+<!-- Connection lines: Backend → External -->
+<line x1="350" y1="825" x2="350" y2="860" stroke="#F57C00" stroke-width="1.5" stroke-dasharray="4,4" marker-end="url(#arrow-orange)"/>
+<line x1="800" y1="825" x2="800" y2="860" stroke="#F57C00" stroke-width="1.5" stroke-dasharray="4,4" marker-end="url(#arrow-orange)"/>
+
+<!-- Registry APIs -->
+<g>
+  <rect x="120" y="865" width="460" height="95" rx="12" fill="#FFF3E0" stroke="#F57C00" stroke-width="1.5" fill-opacity="0.4" filter="url(#shadow-sm)"/>
+  <text x="350" y="888" text-anchor="middle" class="container-title" fill="#E65100">Registry APIs</text>
+
+  <g class="component" data-component="registries" transform="translate(140, 895)">
+    <rect width="100" height="50" rx="6" fill="#FFF3E0" stroke="#F57C00" stroke-width="1"/>
+    <text x="50" y="22" text-anchor="middle" class="sub-label" fill="#E65100">npm</text>
+    <text x="50" y="38" text-anchor="middle" class="comp-detail" fill="#BF360C">registry</text>
+  </g>
+  <g class="component" data-component="registries" transform="translate(250, 895)">
+    <rect width="100" height="50" rx="6" fill="#FFF3E0" stroke="#F57C00" stroke-width="1"/>
+    <text x="50" y="22" text-anchor="middle" class="sub-label" fill="#E65100">PyPI</text>
+    <text x="50" y="38" text-anchor="middle" class="comp-detail" fill="#BF360C">JSON API</text>
+  </g>
+  <g class="component" data-component="registries" transform="translate(360, 895)">
+    <rect width="100" height="50" rx="6" fill="#FFF3E0" stroke="#F57C00" stroke-width="1"/>
+    <text x="50" y="22" text-anchor="middle" class="sub-label" fill="#E65100">Maven</text>
+    <text x="50" y="38" text-anchor="middle" class="comp-detail" fill="#BF360C">Central</text>
+  </g>
+  <g class="component" data-component="registries" transform="translate(470, 895)">
+    <rect width="100" height="50" rx="6" fill="#FFF3E0" stroke="#F57C00" stroke-width="1"/>
+    <text x="50" y="22" text-anchor="middle" class="sub-label" fill="#E65100">crates.io</text>
+    <text x="50" y="38" text-anchor="middle" class="comp-detail" fill="#BF360C">API</text>
+  </g>
+</g>
+
+<!-- Security APIs -->
+<g>
+  <rect x="620" y="865" width="460" height="95" rx="12" fill="#FFF3E0" stroke="#F57C00" stroke-width="1.5" fill-opacity="0.4" filter="url(#shadow-sm)"/>
+  <text x="850" y="888" text-anchor="middle" class="container-title" fill="#E65100">Security APIs</text>
+
+  <g class="component" data-component="security-apis" transform="translate(660, 895)">
+    <rect width="180" height="50" rx="6" fill="#FFF3E0" stroke="#F57C00" stroke-width="1"/>
+    <text x="90" y="22" text-anchor="middle" class="sub-label" fill="#E65100">osv.dev</text>
+    <text x="90" y="38" text-anchor="middle" class="comp-detail" fill="#BF360C">CVE / GHSA database</text>
+  </g>
+  <g class="component" data-component="security-apis" transform="translate(870, 895)">
+    <rect width="180" height="50" rx="6" fill="#FFF3E0" stroke="#F57C00" stroke-width="1"/>
+    <text x="90" y="22" text-anchor="middle" class="sub-label" fill="#E65100">License DBs</text>
+    <text x="90" y="38" text-anchor="middle" class="comp-detail" fill="#BF360C">Compatibility check</text>
+  </g>
+</g>
+
+<!-- ═══════════ LEGEND ═══════════ -->
+<g transform="translate(30, 990)">
+  <rect x="0" y="0" width="1140" height="65" rx="10" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="30" y="22" class="legend-title">Legend</text>
+
+  <!-- REST -->
+  <line x1="100" y1="18" x2="140" y2="18" stroke="#1976D2" stroke-width="2" marker-end="url(#arrow-blue)"/>
+  <text x="150" y="22" class="legend-text">REST API</text>
+
+  <!-- WebSocket -->
+  <line x1="250" y1="18" x2="290" y2="18" stroke="#7B1FA2" stroke-width="2" stroke-dasharray="8,4" marker-end="url(#arrow-purple)"/>
+  <text x="300" y="22" class="legend-text">WebSocket</text>
+
+  <!-- Internal -->
+  <line x1="410" y1="18" x2="450" y2="18" stroke="#00796B" stroke-width="1.5" marker-end="url(#arrow-teal)"/>
+  <text x="460" y="22" class="legend-text">Internal Pipeline</text>
+
+  <!-- External -->
+  <line x1="590" y1="18" x2="630" y2="18" stroke="#F57C00" stroke-width="1.5" stroke-dasharray="4,4" marker-end="url(#arrow-orange)"/>
+  <text x="640" y="22" class="legend-text">External HTTP</text>
+
+  <!-- Step number -->
+  <circle cx="770" cy="16" r="10" fill="#00897B"/>
+  <text x="770" y="20" text-anchor="middle" class="step-num">N</text>
+  <text x="790" y="22" class="legend-text">Pipeline Step</text>
+
+  <!-- WS Frames -->
+  <text x="30" y="50" class="legend-text" font-weight="600">WS Frame Types:</text>
+  <text x="155" y="50" class="legend-text" fill="#7B1FA2">solver_event</text>
+  <text x="260" y="50" class="legend-text" fill="#7B1FA2">agent_message</text>
+  <text x="380" y="50" class="legend-text" fill="#7B1FA2">approval_request</text>
+  <text x="520" y="50" class="legend-text" fill="#7B1FA2">search_event</text>
+  <text x="630" y="50" class="legend-text" fill="#7B1FA2">system</text>
+  <text x="695" y="50" class="legend-text" fill="#7B1FA2">error</text>
+</g>
+
+</svg>
+
+<div id="tooltip">
+  <h3 id="tip-title"></h3>
+  <div id="tip-desc" class="tip-desc"></div>
+  <div id="tip-file"></div>
+</div>
+</main>
+
+<script>
+const DETAILS = {
+  user: {
+    title: 'User (Browser)',
+    desc: 'End user interacts through the Next.js frontend. Creates sessions, pastes manifests, chats with the resolver, and approves/rejects lockfiles.',
+    file: ''
+  },
+  redux: {
+    title: 'Redux Store',
+    desc: 'Central state management via Redux Toolkit. Tracks session ID, connection status, chat entries, streaming state, pending approvals, and final lockfile/report.',
+    file: 'frontend/src/store/slices/dependencyResolverSlice.ts'
+  },
+  'ws-client': {
+    title: 'WebSocket Client',
+    desc: 'Native WebSocket with auto-reconnect and exponential backoff (1s → 30s, max 5 attempts). Handles real-time HITL communication: solver events, agent messages, and approval requests.',
+    file: 'frontend/src/services/dependencyResolverService.ts'
+  },
+  axios: {
+    title: 'Axios HTTP Client',
+    desc: 'REST client for session CRUD operations: create session (POST), get session state (GET), delete session (DELETE), and REST approval fallback.',
+    file: 'frontend/src/services/api.ts'
+  },
+  router: {
+    title: 'FastAPI Router',
+    desc: 'Defines all REST and WebSocket endpoints under /api/dependency_resolver. Routes: /session, /session/{id}, /resolve, /diff, /audit, /health, /chat/{id} (WS).',
+    file: 'agents/dependency_resolver/__init__.py'
+  },
+  guardrails: {
+    title: 'Guardrails Layer',
+    desc: 'Input validation: blocks malicious content, enforces max payload sizes. Output validation: ensures generated lockfiles and reports are safe before delivery.',
+    file: 'agents/dependency_resolver/hitl/guardrails.py'
+  },
+  orchestrator: {
+    title: 'HITL Orchestrator',
+    desc: 'Central coordination hub. Manages WebSocket connections, runs the resolution pipeline, routes user intents (search, rerun, Q&A), and enforces per-session pipeline locks.',
+    file: 'agents/dependency_resolver/hitl/orchestrator.py'
+  },
+  parsers: {
+    title: 'Manifest Parsers',
+    desc: 'Ecosystem-specific parsers that extract direct dependencies from manifest files. Supports: package.json (npm), requirements.txt (PyPI), Cargo.toml (Rust), pom.xml (Maven).',
+    file: 'agents/dependency_resolver/parsers/'
+  },
+  graph: {
+    title: 'Dependency Graph',
+    desc: 'Builds a DAG from direct dependencies. Recursively fetches transitive deps from registry APIs. Configurable max depth (default 4). Caches nodes and detects cycles.',
+    file: 'agents/dependency_resolver/resolver/graph.py'
+  },
+  solver: {
+    title: 'PubGrub Solver',
+    desc: 'Deterministic version resolution engine. Strategies: stable (latest non-prerelease), latest (absolute), minimal (oldest stable). Returns resolved packages + conflicts.',
+    file: 'agents/dependency_resolver/resolver/solver.py'
+  },
+  security: {
+    title: 'Security Layer',
+    desc: 'OSVClient queries osv.dev for CVE/GHSA vulnerabilities and annotates resolved packages. LicenseChecker validates license compatibility across the dependency tree.',
+    file: 'agents/dependency_resolver/security/'
+  },
+  explainer: {
+    title: 'LLM Explainer',
+    desc: 'Streams conflict explanations via Azure OpenAI. Also builds lockfiles (ecosystem-specific format), markdown reports, and generates session titles.',
+    file: 'agents/dependency_resolver/llm/explainer.py'
+  },
+  approval: {
+    title: 'Approval Gateway',
+    desc: 'Gates lockfile application behind an explicit human APPROVE/REJECT decision. Prevents the solver from auto-applying lockfiles. Tracks approval state and prevents double-approval.',
+    file: 'agents/dependency_resolver/hitl/approval_gateway.py'
+  },
+  'session-store': {
+    title: 'Session Store',
+    desc: 'Persists session state as JSON in state/hitl/{session_id}.json. Stores: ecosystem, manifest, strategy, chat history, status, approval decisions, and resolution stats.',
+    file: 'agents/dependency_resolver/hitl/session.py'
+  },
+  registries: {
+    title: 'Package Registries',
+    desc: 'HTTP clients for npm registry, PyPI JSON API, Maven Central, and crates.io. Provides package metadata, available versions, and dependency information. Abstract BaseRegistry allows extensibility.',
+    file: 'agents/dependency_resolver/registry/'
+  },
+  'security-apis': {
+    title: 'Security APIs',
+    desc: 'osv.dev: Open Source Vulnerability database (no API key required). License DBs: compatibility and compliance checking for open-source licenses.',
+    file: ''
+  }
+};
+
+const tooltip = document.getElementById('tooltip');
+const tipTitle = document.getElementById('tip-title');
+const tipDesc = document.getElementById('tip-desc');
+const tipFile = document.getElementById('tip-file');
+
+document.querySelectorAll('.component').forEach(g => {
+  const key = g.dataset.component;
+  if (!DETAILS[key]) return;
+
+  g.addEventListener('mouseenter', (e) => {
+    const d = DETAILS[key];
+    tipTitle.textContent = d.title;
+    tipDesc.textContent = d.desc;
+    tipFile.innerHTML = d.file ? '<span class="tip-file">' + d.file + '</span>' : '';
+    tooltip.classList.add('visible');
+  });
+
+  g.addEventListener('mousemove', (e) => {
+    const x = e.clientX + 16;
+    const y = e.clientY + 12;
+    const tw = tooltip.offsetWidth;
+    const th = tooltip.offsetHeight;
+    tooltip.style.left = (x + tw > window.innerWidth ? e.clientX - tw - 8 : x) + 'px';
+    tooltip.style.top = (y + th > window.innerHeight ? e.clientY - th - 8 : y) + 'px';
+  });
+
+  g.addEventListener('mouseleave', () => {
+    tooltip.classList.remove('visible');
+  });
+});
+</script>
+</body>
+</html>
