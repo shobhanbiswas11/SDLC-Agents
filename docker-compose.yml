@@ -1,0 +1,81 @@
+services:
+  frontend:
+    build:
+      context: ./apps/build-orchestration-agent
+    command: npm run dev -- --host 0.0.0.0
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/build-orchestration-agent:/app
+      - /app/node_modules
+    depends_on:
+      - fastapi
+
+  fastapi:
+    build:
+      context: ./backend/build-orchestration-agent
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    env_file:
+      - ./backend/build-orchestration-agent/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://build_agent:build_agent@postgres:5432/build_orchestration
+      SYNC_DATABASE_URL: postgresql://build_agent:build_agent@postgres:5432/build_orchestration
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/build-orchestration-agent:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  celery_worker:
+    build:
+      context: ./backend/build-orchestration-agent
+    command: celery -A app.workers.celery_app worker --loglevel=info
+    env_file:
+      - ./backend/build-orchestration-agent/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://build_agent:build_agent@postgres:5432/build_orchestration
+      SYNC_DATABASE_URL: postgresql://build_agent:build_agent@postgres:5432/build_orchestration
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend/build-orchestration-agent:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: build_orchestration
+      POSTGRES_USER: build_agent
+      POSTGRES_PASSWORD: build_agent
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U build_agent -d build_orchestration"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:
